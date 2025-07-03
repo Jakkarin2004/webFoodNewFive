@@ -258,7 +258,7 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="mt-8 bg-white rounded-2xl shadow-xl p-6">
+        {/* <div className="mt-8 bg-white rounded-2xl shadow-xl p-6">
           <h2 className="text-xl font-bold text-gray-800 mb-6">การดำเนินการด่วน</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {[
@@ -278,7 +278,7 @@ const Dashboard = () => {
               </button>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
     

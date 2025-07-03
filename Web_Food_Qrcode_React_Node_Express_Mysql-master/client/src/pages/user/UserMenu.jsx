@@ -120,6 +120,7 @@ const UserMenu = () => {
     // ดึง cart เดิมจาก localStorage ถ้าไม่มีให้เริ่มใหม่ พร้อมใส่เลขโต๊ะ
     let existingCart = JSON.parse(localStorage.getItem("cart")) || {
       table_number: tableNumber,
+      session_id: uuidv4(),
       items: [],
     };
 
@@ -127,6 +128,7 @@ const UserMenu = () => {
     if (existingCart.table_number !== tableNumber) {
       existingCart = {
         table_number: tableNumber,
+        session_id: uuidv4(),
         items: [],
       };
     }

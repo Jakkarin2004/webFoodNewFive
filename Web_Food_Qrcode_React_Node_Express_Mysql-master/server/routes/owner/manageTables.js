@@ -13,7 +13,7 @@ router.post('/', uploadQrcodeImage.single('qrcode_image'), async (req, res) => {
   const fileName = `table_${table_number}.png`;
   const qrDir = path.join(__dirname, '../../public/uploads/qrcode');
   const qrPath = path.join(qrDir, fileName);
-  const tableUrl = `http://localhost:5173/user-home/table/${table_number}`;
+  const tableUrl = `http://localhost:5173/user-home/table/${table_number}/order`;
 
 
   try {

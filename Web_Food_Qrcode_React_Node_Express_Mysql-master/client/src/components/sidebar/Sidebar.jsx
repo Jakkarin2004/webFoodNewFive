@@ -22,10 +22,17 @@ import useAuthStore from "../../stores/authStore";
 import axios from "axios";
 import { io } from "socket.io-client";
 
+// const OrderContext = createContext();
+const socket = io("http://localhost:3000"); // ปรับตาม backend
 
 const Sidebar = ({ children, isOpen = true, onToggle }) => {
   const [collapsed, setCollapsed] = useState(!isOpen);
-const [orderCount, setOrderCount] = useState(0);
+//  const [orderCount, setOrderCount] = useState(0);
+  const [orderCount, setOrderCount] = useState(0);
+
+    const token = useAuthStore((state) => state.token);
+
+    // ฟังก์ชันโหลดออเดอร์ใหม่
 
 
 // useEffect(() => {
@@ -49,61 +56,86 @@ const [orderCount, setOrderCount] = useState(0);
 //     socket.disconnect();
 //   };
 // }, []);
+useEffect(() => {
+  if (!token) return;
+
+  const socket = io("http://localhost:3000", {
+    auth: { token }, // ส่ง token ถ้าต้องการ
+  });
+
+  socket.on("connect", () => {
+    console.log("Socket connected:", socket.id);
+  });
+
+  socket.on("orderCountUpdated", (data) => {
+    console.log("Received orderCountUpdated:", data);
+    setOrderCount(data.count);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Socket disconnected");
+  });
+
+  // clean up เมื่อ component ถูก unmount หรือ token เปลี่ยนแปลง
+  return () => {
+    socket.off("connect");
+    socket.off("orderCountUpdated");
+    socket.off("disconnect");
+    socket.disconnect();
+  };
+}, [token]);
 
 
-  useEffect(() => {
-    const socket = io("http://localhost:3000");
 
-    const fetchOrderCount = async () => {
-      try {
-        const token = useAuthStore.getState().token;
-        const res = await axios.get("http://localhost:3000/api/owner/orders/count", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setOrderCount(res.data.count);
-      } catch (err) {
-        console.error("โหลดจำนวนออเดอร์ล้มเหลว:", err);
-      }
-    };
 
-    fetchOrderCount();
+ 
+//  useEffect(() => {
+//     // ฟัง event จำนวนออเดอร์ที่ยังไม่เสร็จ
+//     socket.on("orderCountUpdated", (data) => {
+//       console.log("Received orderCountUpdated:", data.count);
+//       setOrderCount(data.count);
+//     });
 
-    socket.on("orderCountUpdated", (data) => {
-      setOrderCount(data.count);
-    });
+//     // ฟัง event ยอดขายวันนี้
+//     socket.on("today_revenue_updated", (data) => {
+//       console.log("Received today_revenue_updated:", data);
+//       setTodayRevenue(data);
+//     });
 
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+//     // ล้าง event listener เมื่อ component unmount
+//     return () => {
+//       socket.off("orderCountUpdated");
+//       socket.off("today_revenue_updated");
+//     };
+//   }, []);
 
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
     if (onToggle) onToggle(!collapsed);
   };
   const navigate = useNavigate();
+  console.log("orderCount:", orderCount);
 
-useEffect(() => {
-  const fetchOrderCount = async () => {
-    try {
-      const token = useAuthStore.getState().token;
-      console.log('orderCount:', orderCount); // ✅ ควรมีค่า เช่น 3
 
-      const res = await axios.get('http://localhost:3000/api/owner/orders/count', {
-        headers: {
-          Authorization: `Bearer ${token}` // ถ้ามี verifyToken
-        }
-      });
-      setOrderCount(res.data.count);
-    } catch (err) {
-      console.error('โหลดจำนวนออเดอร์ล้มเหลว:', err);
-    }
-  };
+// useEffect(() => {
+//   const fetchOrderCount = async () => {
+//     try {
+//       const token = useAuthStore.getState().token;
+//       console.log('orderCount:', orderCount); // ✅ ควรมีค่า เช่น 3
 
-  fetchOrderCount();
-}, []);
+//       const res = await axios.get('http://localhost:3000/api/owner/orders/count', {
+//         headers: {
+//           Authorization: `Bearer ${token}` // ถ้ามี verifyToken
+//         }
+//       });
+//       setOrderCount(res.data.count);
+//     } catch (err) {
+//       console.error('โหลดจำนวนออเดอร์ล้มเหลว:', err);
+//     }
+//   };
+
+//   fetchOrderCount();
+// }, []);
 
 
   const menuItems = [
@@ -112,7 +144,7 @@ useEffect(() => {
       label: 'หน้าหลัก',
       icon: Home,
       // active: true,
-      path: '/billing',
+      path: '/',
     },
     {
       id: 'orders',
@@ -128,7 +160,6 @@ useEffect(() => {
       children: [
         { id: 'menu-list', label: 'รายการเมนู', path: '/menu', },
         { id: 'menu-category', label: 'หมวดหมู่', path: '/category', },
-        { id: 'menu-ingredients', label: 'วัตถุดิบ', path: '/billing', }
       ]
     },
     {
@@ -136,16 +167,6 @@ useEffect(() => {
       label: 'จัดการพนักงาน',
       icon: Users, 
       path: '/staff'
-    },
-    {
-      id: 'reports',
-      label: 'รายงาน',
-      icon: BarChart3,
-      children: [
-        { id: 'sales-report', label: 'รายงานขาย' },
-        { id: 'menu-report', label: 'รายงานเมนู' },
-        { id: 'customer-report', label: 'รายงานลูกค้า' }
-      ]
     },
     {
       id: 'promotions',
@@ -160,6 +181,13 @@ useEffect(() => {
     //   icon: Star,
     //   badge: '2'
     // },
+        {
+      id: 'history',
+      label: 'ประวัติคำสั่งซื้อ',
+      icon: Gift
+      , path: '/order-history'
+
+    },
     {
       id: 'billing',
       label: 'บิลและชำระเงิน',

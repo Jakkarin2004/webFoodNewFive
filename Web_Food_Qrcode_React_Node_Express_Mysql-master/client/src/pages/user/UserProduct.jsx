@@ -3,6 +3,21 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../../components/user/Navbar";
 import Footer from "../../components/user/Footer";
+import UserOrderList from "./UserOrderList";
+
+// ✅ รวมฟังก์ชันไว้ตรงนี้เลย
+const generateOrderCode = (table_number) => {
+  const now = new Date();
+  const timestamp = now.getFullYear().toString().slice(-2)
+    + String(now.getMonth() + 1).padStart(2, '0')
+    + String(now.getDate()).padStart(2, '0')
+    + String(now.getHours()).padStart(2, '0')
+    + String(now.getMinutes()).padStart(2, '0')
+    + String(now.getSeconds()).padStart(2, '0');
+
+  return `T${table_number}-${timestamp}`;
+};
+
 
 const API_URL_IMAGE = "http://localhost:3000/uploads/food";
 
@@ -10,6 +25,8 @@ const UserProduct = () => {
   const [cart, setCart] = useState([]);
   const { table_number } = useParams();
   const navigate = useNavigate();
+
+  
 
   useEffect(() => {
     const storedCart = JSON.parse(localStorage.getItem("cart")) || { items: [] };
@@ -68,33 +85,37 @@ const UserProduct = () => {
   };
 
   const handleSubmitOrder = async () => {
-    if (!cart.length) {
-      alert("❌ ไม่มีรายการอาหารในคำสั่งซื้อ");
-      return;
-    }
+  if (!cart.length) {
+    alert("❌ ไม่มีรายการอาหารในคำสั่งซื้อ");
+    return;
+  }
 
-    const orderData = {
-  table_number,
-  items: cart.map((item) => ({
-    menu_id: item.id,
-    quantity: item.quantity,
-    price: parseFloat(item.price) * (item.quantity || 1), // เก็บเป็นตัวเลข ไม่ต้อง
-    note: item.note,
-    specialRequest: item.specialRequest,
-  })),
+  const orderCode = generateOrderCode(table_number);
+
+  const orderData = {
+    order_code: orderCode, // ⬅️ เพิ่มรหัสออเดอร์
+    table_number,
+    items: cart.map((item) => ({
+      menu_id: item.id,
+      quantity: item.quantity,
+      price: parseFloat(item.price),
+      note: item.note,
+      specialRequest: item.specialRequest,
+    })),
+  };
+
+  try {
+    const res = await axios.post("http://localhost:3000/api/user/order", orderData);
+    console.log("✅ คำสั่งซื้อสำเร็จ:", res.data);
+    alert(`✅ คำสั่งซื้อสำเร็จ!\nรหัสออเดอร์: ${orderCode}`);
+    localStorage.removeItem("cart");
+    setCart([]);
+  } catch (error) {
+    console.error("❌ ส่งคำสั่งซื้อไม่สำเร็จ:", error);
+    alert("❌ เกิดข้อผิดพลาดในการส่งคำสั่งซื้อ");
+  }
 };
 
-    try {
-      const res = await axios.post("http://localhost:3000/api/user/order", orderData);
-      console.log("✅ คำสั่งซื้อสำเร็จ:", res.data);
-      alert("✅ คำสั่งซื้อสำเร็จ!");
-      localStorage.removeItem("cart");
-      setCart([]);
-    } catch (error) {
-      console.error("❌ ส่งคำสั่งซื้อไม่สำเร็จ:", error);
-      alert("❌ เกิดข้อผิดพลาดในการส่งคำสั่งซื้อ");
-    }
-  };
 
   const totalPrice = cart.reduce(
     (sum, item) => sum + (parseFloat(item.price) || 0) * (item.quantity || 1),
@@ -216,7 +237,7 @@ const UserProduct = () => {
           </div>
         </div>
       </div>
-
+            <UserOrderList/>
       <Footer />
     </div>
   );

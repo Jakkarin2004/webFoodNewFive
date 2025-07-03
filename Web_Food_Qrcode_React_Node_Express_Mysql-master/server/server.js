@@ -66,6 +66,7 @@ const db = require('./config/db');
 
 const app = express();
 const server = http.createServer(app); // ✅ แทน app.listen
+const { getTodayCount } = require('./routes/owner/getTodayCount'); // เปลี่ยน path ตามจริง
 const io = new Server(server, {
   cors: {
     origin: 'http://localhost:5173',
@@ -80,6 +81,13 @@ app.set("io", io);
 // เชื่อมต่อ Socket.IO
 io.on("connection", (socket) => {
   console.log("🟢 Client connected:", socket.id);
+  getTodayCount()
+    .then(count => {
+      socket.emit("orderCountUpdated", { count });
+    })
+    .catch(err => {
+      console.error("❌ ดึงจำนวนออเดอร์วันนี้ล้มเหลว:", err);
+    });
 
   socket.on("disconnect", () => {
     console.log("🔴 Client disconnected:", socket.id);
@@ -124,7 +132,6 @@ app.use('/api/user/order', userOrder);
 
 const checkTableRoute = require('./routes/user/checkTable');
 app.use('/api/user/check-table', checkTableRoute);
-
 
 const UserOrderList = require('./routes/user/userOrderList');
 app.use('/api/user/order-list', UserOrderList);

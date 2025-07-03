@@ -18,15 +18,35 @@ router.use(verifyToken, isOwner);
 //     res.status(500).json({ message: "เกิดข้อผิดพลาดในฝั่งเซิร์ฟเวอร์" });
 //   }
 // });
-// ออเดอร์เฉพาะของ "วันนี้"
-router.get("/all", verifyToken, isOwner, async (req, res) => {
+
+
+// // ออเดอร์เฉพาะของ "วันนี้"
+// router.get("/all", verifyToken, isOwner, async (req, res) => {
+//   try {
+//     const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Bangkok" });
+
+//     const [rows] = await db.promise().query(
+//       `SELECT * FROM orders 
+//        WHERE DATE(order_time) = ?`,
+//       [today]
+//     );
+
+//     res.json({ orders: rows });
+//   } catch (error) {
+//     console.error("🔥 เกิดข้อผิดพลาดใน backend:", error);
+//     res.status(500).json({ message: "เกิดข้อผิดพลาดในฝั่งเซิร์ฟเวอร์" });
+//   }
+// });
+
+router.get("/table/:tableNumber", verifyToken, async (req, res) => {
   try {
     const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Bangkok" });
+    const tableNumber = req.params.tableNumber;
 
     const [rows] = await db.promise().query(
       `SELECT * FROM orders 
-       WHERE DATE(order_time) = ?`,
-      [today]
+       WHERE DATE(order_time) = ? AND table_number = ?`,
+      [today, tableNumber]
     );
 
     res.json({ orders: rows });
@@ -36,23 +56,20 @@ router.get("/all", verifyToken, isOwner, async (req, res) => {
   }
 });
 
-// router.get('/count', verifyToken, isOwner, async (req, res) => {
+
+// router.get("/by-table/:table_number", async (req, res) => {
+//   const tableNumber = req.params.table_number;
 //   try {
-//     const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
-
-//     const [rows] = await db.promise().query(`
-//       SELECT COUNT(*) AS count
-//       FROM orders
-//       WHERE DATE(CONVERT_TZ(order_time, '+00:00', '+07:00')) = ?
-//         AND status NOT IN ('completed', 'cancelled')
-//     `, [today]);
-
-//     res.json({ count: rows[0].count });
+//     const [orders] = await db.promise().query(
+//       `SELECT * FROM orders WHERE table_number = ? ORDER BY created_at DESC`,
+//       [tableNumber]
+//     );
+//     res.json(orders);
 //   } catch (err) {
-//     console.error('❌ เกิดข้อผิดพลาด:', err);
-//     res.status(500).json({ message: 'ไม่สามารถดึงจำนวนออเดอร์วันนี้ได้' });
+//     res.status(500).json({ error: "Server error" });
 //   }
 // });
+
 
 router.get('/count', verifyToken, isOwner, async (req, res) => {
   try {

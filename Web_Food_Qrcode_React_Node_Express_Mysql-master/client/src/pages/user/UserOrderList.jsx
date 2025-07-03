@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";   
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import useAuthStore from "../../stores/authStore";
@@ -14,11 +14,13 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-const API_URL_ORDER = "http://localhost:3000/api/owner/orders";
+const API_URL_ORDER = "http://localhost:3000/api/user/order-list";
 
 const UserOrderList = () => {
   const [orders, setOrders] = useState([]);
   const [orderDetails, setOrderDetails] = useState({});
+  const [currentTableNumber, setCurrentTableNumber] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState(null);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -59,61 +61,76 @@ const UserOrderList = () => {
         const token = useAuthStore.getState().token;
         if (!token) return;
 
-        const res = await axios.get(`${API_URL_ORDER}/all`, {
+        const tableNumber = window.location.pathname.split('/').pop();
+        setCurrentTableNumber(tableNumber);
+        
+        // ดึงข้อมูลออเดอร์
+        const res = await axios.get(`${API_URL_ORDER}/table/${tableNumber}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const orders = res.data.orders;
-        // เรียงลำดับตามเวลา - ใหม่สุดอยู่บนสุด
-        const sortedOrders = orders.sort((a, b) => new Date(b.order_time) - new Date(a.order_time));
+        console.log("API Orders Response:", res.data);
+
+        const sortedOrders = [...res.data.orders].sort(
+          (a, b) => new Date(b.order_time) - new Date(a.order_time)
+        );
         setOrders(sortedOrders);
 
+        // ดึงรายละเอียดแต่ละออเดอร์
         const details = {};
-        for (const order of orders) {
+        for (const order of sortedOrders) {
           try {
             const detailRes = await axios.get(
               `${API_URL_ORDER}/${order.order_id}`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-                timeout: 10000,
-              }
+              { headers: { Authorization: `Bearer ${token}` } }
             );
             details[order.order_id] = detailRes.data.items || [];
-          } catch {
+            console.log(`Details for Order ${order.order_id}:`, detailRes.data);
+          } catch (err) {
+            console.error(`Error fetching details for Order ${order.order_id}:`, err);
             details[order.order_id] = [];
           }
         }
         setOrderDetails(details);
       } catch (err) {
-        console.error("ดึงข้อมูลล้มเหลว:", err.message);
+        console.error("ดึงข้อมูลล้มเหลว:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchData();
 
+    // Socket.io สำหรับอัพเดทแบบ real-time
     socket.on("new_order", async (newOrder) => {
-      // เพิ่มออเดอร์ใหม่ไว้บนสุด แล้วเรียงใหม่ตามเวลา
-      setOrders((prev) => {
-        const updatedOrders = [newOrder, ...prev];
-        return updatedOrders.sort((a, b) => new Date(b.order_time) - new Date(a.order_time));
-      });
-      const token = useAuthStore.getState().token;
-      try {
-        const res = await axios.get(`${API_URL_ORDER}/${newOrder.order_id}`, {
-          headers: { Authorization: `Bearer ${token}` },
+      if (newOrder.table_number === currentTableNumber) {
+        setOrders(prev => {
+          const updatedOrders = [newOrder, ...prev];
+          return updatedOrders.sort(
+            (a, b) => new Date(b.order_time) - new Date(a.order_time)
+          );
         });
-        setOrderDetails((prev) => ({
-          ...prev,
-          [newOrder.order_id]: res.data.items || [],
-        }));
-      } catch (err) {
-        console.error("โหลดรายละเอียด order ใหม่ล้มเหลว", err);
+
+        // ดึงรายละเอียดออเดอร์ใหม่
+        const token = useAuthStore.getState().token;
+        try {
+          const detailRes = await axios.get(
+            `${API_URL_ORDER}/${newOrder.order_id}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          setOrderDetails(prev => ({
+            ...prev,
+            [newOrder.order_id]: detailRes.data.items || []
+          }));
+        } catch (err) {
+          console.error("Error fetching new order details:", err);
+        }
       }
     });
 
     return () => {
       socket.off("new_order");
     };
-  }, []);
+  }, [currentTableNumber]);
 
   const handleCancelClick = (order) => {
     setOrderToCancel(order);
@@ -122,31 +139,27 @@ const UserOrderList = () => {
 
   const handleCancelOrder = async () => {
     if (!orderToCancel) return;
-    
+
     setIsCancelling(true);
     try {
       const token = useAuthStore.getState().token;
       await axios.patch(
         `${API_URL_ORDER}/${orderToCancel.order_id}/cancel`,
         {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // อัพเดทสถานะในหน้าจอ
-      setOrders((prev) =>
-        prev.map((order) =>
+      setOrders(prev =>
+        prev.map(order =>
           order.order_id === orderToCancel.order_id
             ? { ...order, status: "cancelled" }
             : order
         )
       );
-
       setShowCancelModal(false);
       setOrderToCancel(null);
     } catch (err) {
-      console.error("ยกเลิกคำสั่งซื้อล้มเหลว:", err.message);
+      console.error("ยกเลิกคำสั่งซื้อล้มเหลว:", err);
       alert("ไม่สามารถยกเลิกคำสั่งซื้อได้ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsCancelling(false);
@@ -158,11 +171,11 @@ const UserOrderList = () => {
   };
 
   const formatPrice = (price) => {
-    if (!price) return "฿0.00";
+    const num = typeof price === 'string' ? parseFloat(price) : price;
     return new Intl.NumberFormat("th-TH", {
       style: "currency",
       currency: "THB",
-    }).format(price);
+    }).format(num || 0);
   };
 
   const formatDateTime = (dateString) => {
@@ -176,7 +189,7 @@ const UserOrderList = () => {
       time: date.toLocaleTimeString("th-TH", {
         hour: "2-digit",
         minute: "2-digit",
-      })
+      }),
     };
   };
 
@@ -186,30 +199,36 @@ const UserOrderList = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 bg-white px-6 py-3 rounded-full shadow-lg border border-orange-200">
-            <Receipt className="w-6 h-6 text-orange-600" />
-            <h1 className="text-2xl font-bold text-orange-800">รายการคำสั่งซื้อทั้งหมด</h1>
+            
+            <h1 className="text-2xl font-bold text-orange-800">
+              รายการคำสั่งซื้อทั้งหมด
+            </h1>
           </div>
         </div>
 
-        {orders.length === 0 && (
+        {isLoading ? (
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto"></div>
+            <p className="text-orange-500 mt-4">กำลังโหลดข้อมูล...</p>
+          </div>
+        ) : orders.length === 0 ? (
           <div className="text-center py-20">
             <Utensils className="w-16 h-16 text-orange-300 mx-auto mb-4" />
-            <p className="text-orange-500 text-lg">ไม่พบคำสั่งซื้อ</p>
+            <p className="text-orange-500 text-lg">ไม่พบคำสั่งซื้อสำหรับโต๊ะนี้</p>
           </div>
-        )}
+        ) : (
+          <div className="space-y-6">
+            {orders.map((order) => {
+              const statusInfo = orderStatuses[order.status] || {
+                label: order.status,
+                color: "bg-gray-50 text-gray-700 border-gray-200",
+                icon: Clock,
+              };
 
-        <div className="space-y-6">
-          {orders.map((order) => {
-            const statusInfo = orderStatuses[order.status] || {
-              label: order.status,
-              color: "bg-gray-50 text-gray-700 border-gray-200",
-              icon: Clock,
-            };
+              const items = orderDetails[order.order_id] || [];
+              const dateTime = formatDateTime(order.order_time);
 
-            const items = orderDetails[order.order_id] || [];
-            const dateTime = formatDateTime(order.order_time);
-
-            return (
+              return (
               <div
                 key={order.order_id}
                 className="bg-white rounded-2xl shadow-lg border border-orange-200 overflow-hidden transform hover:scale-[1.02] transition-all duration-200"
@@ -222,12 +241,18 @@ const UserOrderList = () => {
                         <Receipt className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-orange-100 text-sm font-medium">เลขที่คำสั่งซื้อ</p>
-                        <p className="font-mono text-lg font-bold">{order.order_id}</p>
+                        <p className="text-orange-100 text-sm font-medium">
+                          เลขที่คำสั่งซื้อ
+                        </p>
+                        <p className="font-mono text-lg font-bold">
+                          {order.order_id}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className={`${statusInfo.color} border px-4 py-2 rounded-full flex items-center gap-2 font-medium text-sm bg-white`}>
+                      <div
+                        className={`${statusInfo.color} border px-4 py-2 rounded-full flex items-center gap-2 font-medium text-sm bg-white`}
+                      >
                         <statusInfo.icon className="w-4 h-4" />
                         {statusInfo.label}
                       </div>
@@ -250,17 +275,23 @@ const UserOrderList = () => {
                     <div className="flex items-center gap-2">
                       <Hash className="w-4 h-4 text-orange-500" />
                       <span className="text-orange-600">หมายเลขโต๊ะ:</span>
-                      <span className="font-semibold text-orange-800">{order.table_number}</span>
+                      <span className="font-semibold text-orange-800">
+                        {order.table_number}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-orange-500" />
                       <span className="text-orange-600">วันที่:</span>
-                      <span className="font-semibold text-orange-800">{dateTime.date}</span>
+                      <span className="font-semibold text-orange-800">
+                        {dateTime.date}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-orange-500" />
                       <span className="text-orange-600">เวลา:</span>
-                      <span className="font-semibold text-orange-800">{dateTime.time}</span>
+                      <span className="font-semibold text-orange-800">
+                        {dateTime.time}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -288,7 +319,9 @@ const UserOrderList = () => {
                           className="grid grid-cols-12 gap-2 py-2 hover:bg-orange-50 rounded-lg px-2 -mx-2 transition-colors"
                         >
                           <div className="col-span-6">
-                            <p className="font-medium text-gray-800">{item.menu_name}</p>
+                            <p className="font-medium text-gray-800">
+                              {item.menu_name}
+                            </p>
                           </div>
                           <div className="col-span-2 text-center">
                             <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-sm font-mono">
@@ -310,7 +343,9 @@ const UserOrderList = () => {
                       {/* Total */}
                       <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
                         <div className="flex justify-between items-center">
-                          <span className="text-lg font-semibold text-orange-700">ยอดรวมทั้งหมด</span>
+                          <span className="text-lg font-semibold text-orange-700">
+                            ยอดรวมทั้งหมด
+                          </span>
                           <span className="text-2xl font-bold text-orange-600 font-mono">
                             {formatPrice(order.total_price)}
                           </span>
@@ -328,8 +363,9 @@ const UserOrderList = () => {
                 </div>
               </div>
             );
-          })}
-        </div>
+            })}
+          </div>
+        )}
       </div>
 
       {/* Cancel Confirmation Modal */}

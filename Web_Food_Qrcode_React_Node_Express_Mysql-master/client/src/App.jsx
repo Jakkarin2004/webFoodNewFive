@@ -16,13 +16,13 @@ import Login from './pages/auth/Login';
 import Dashboard from './pages/owner/Dashboard';
 import OwnerLayout from './layouts/OwnerLayout';
 import ManageOrders from './pages/owner/ManageOrders';
+import OrderHistory from './pages/owner/OrderHistory';
 
 // User
 import UserMenu from './pages/user/UserMenu'
 import UserProduct from './pages/user/UserProduct'
 import UserHome from './pages/user/UserHome'
 import UserOrderList from './pages/user/UserOrderList';
-
 
 // Error 
 import Error404Page from './components/Error404Page';
@@ -54,14 +54,13 @@ function App() {
           <Route path="/staff" element={<ManageStaff />} />
           <Route path="/table" element={<ManageTable />} />
           <Route path="/orders" element={<ManageOrders />} />
+          <Route path="/order-history" element={<OrderHistory />} />
         </Route>
 
           <Route path="/user-menu/table/:table_number" element={<UserMenu />} />
           <Route path="/user-product/table/:table_number" element={<UserProduct />} />
           <Route path="/user-home/table/:table_number" element={<UserHome />} />
           <Route path="/user-orders/table/:table_number" element={<UserOrderList />} />
-
-
       
           <Route path="/404" element={<Error404Page />} />
           <Route path="*" element={<Error404Page />} />

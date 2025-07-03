@@ -26,9 +26,9 @@ const ManageOrders = () => {
   const [sortOrder, setSortOrder] = useState("desc");
   const [selectedOrder, setSelectedOrder] = useState(null);
   //ยอดขาย
-  const [revenueData, setRevenueData] = useState({ totalRevenue: 0 });
+   const [revenueData, setRevenueData] = useState(null);
   // 
-  
+    const token = useAuthStore((state) => state.token);
   // 
 
   const socket = io("http://localhost:3000");
@@ -63,34 +63,92 @@ const ManageOrders = () => {
     },
   };
 
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       const token = useAuthStore.getState().token;
+  //       if (!token) return;
+
+  //       const res = await axios.get(`${API_URL_ORDER}/all`, {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       });
+  //       const orders = res.data.orders;
+  //       setOrders(orders);
+
+  //       const details = {};
+  //       for (const order of orders) {
+  //         try {
+  //           const detailRes = await axios.get(
+  //             `${API_URL_ORDER}/${order.order_id}`,
+  //             {
+  //               headers: { Authorization: `Bearer ${token}` },
+  //               timeout: 10000,
+  //             }
+  //           );
+  //           details[order.order_id] = detailRes.data.items || [];
+  //         } catch (err) {
+  //           console.error(`ดึงออเดอร์ ${order.order_id} ล้มเหลว:`, err.message);
+  //           details[order.order_id] = [];
+  //         }
+  //       }
+  //       setOrderDetails(details);
+  //     } catch (err) {
+  //       console.error("ดึงข้อมูลล้มเหลว:", err.message);
+  //     }
+  //   };
+
+  //   fetchData();
+
+  //   socket.on("new_order", async (newOrder) => {
+  //     setOrders((prev) => [newOrder, ...prev]);
+
+  //     const token = useAuthStore.getState().token;
+  //     try {
+  //       const res = await axios.get(`${API_URL_ORDER}/${newOrder.order_id}`, {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       });
+
+  //       setOrderDetails((prev) => ({
+  //         ...prev,
+  //         [newOrder.order_id]: res.data.items || [],
+  //       }));
+  //     } catch (err) {
+  //       console.error("โหลดรายละเอียด order ใหม่ล้มเหลว", err);
+  //     }
+  //   });
+
+  //   return () => {
+  //     socket.off("new_order");
+  //   };
+  // }, []);
+  
   useEffect(() => {
+    if (!token) return;
+
     const fetchData = async () => {
       try {
-        const token = useAuthStore.getState().token;
-        if (!token) return;
-
         const res = await axios.get(`${API_URL_ORDER}/all`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const orders = res.data.orders;
         setOrders(orders);
 
-        const details = {};
-        for (const order of orders) {
-          try {
-            const detailRes = await axios.get(
-              `${API_URL_ORDER}/${order.order_id}`,
-              {
+        // ✅ ดึงรายละเอียดแบบ Promise.all
+        const detailsResult = await Promise.all(
+          orders.map((order) =>
+            axios
+              .get(`${API_URL_ORDER}/${order.order_id}`, {
                 headers: { Authorization: `Bearer ${token}` },
-                timeout: 10000,
-              }
-            );
-            details[order.order_id] = detailRes.data.items || [];
-          } catch (err) {
-            console.error(`ดึงออเดอร์ ${order.order_id} ล้มเหลว:`, err.message);
-            details[order.order_id] = [];
-          }
-        }
+              })
+              .then((res) => [order.order_id, res.data.items || []])
+              .catch((err) => {
+                console.error(`ดึงออเดอร์ ${order.order_id} ล้มเหลว:`, err.message);
+                return [order.order_id, []];
+              })
+          )
+        );
+
+        const details = Object.fromEntries(detailsResult);
         setOrderDetails(details);
       } catch (err) {
         console.error("ดึงข้อมูลล้มเหลว:", err.message);
@@ -99,10 +157,10 @@ const ManageOrders = () => {
 
     fetchData();
 
-    socket.on("new_order", async (newOrder) => {
+    // ✅ ใช้งาน socket
+    const handleNewOrder = async (newOrder) => {
       setOrders((prev) => [newOrder, ...prev]);
 
-      const token = useAuthStore.getState().token;
       try {
         const res = await axios.get(`${API_URL_ORDER}/${newOrder.order_id}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -113,23 +171,47 @@ const ManageOrders = () => {
           [newOrder.order_id]: res.data.items || [],
         }));
       } catch (err) {
-        console.error("โหลดรายละเอียด order ใหม่ล้มเหลว", err);
+        console.error("โหลดรายละเอียด order ใหม่ล้มเหลว", err.message);
       }
-    });
-
-    return () => {
-      socket.off("new_order");
     };
-  }, []);
 
+    socket.on("new_order", handleNewOrder);
+    return () => {
+      socket.off("new_order", handleNewOrder);
+    };
+  }, [token]); // ✅ หาก token เปลี่ยน ควร fetch ใหม่
+
+
+  // useEffect(() => {
+  //   const token = useAuthStore.getState().token;
+  //   axios
+  //     .get("http://localhost:3000/api/owner/orders/today-revenue", {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     })
+  //     .then((res) => setRevenueData(res.data))
+  //     .catch((err) => console.error("โหลดข้อมูลยอดขายล้มเหลว", err));
+  // }, []);
   useEffect(() => {
     const token = useAuthStore.getState().token;
+
+    // ดึงข้อมูลยอดขายตอนหน้าโหลดครั้งแรก
     axios
       .get("http://localhost:3000/api/owner/orders/today-revenue", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setRevenueData(res.data))
       .catch((err) => console.error("โหลดข้อมูลยอดขายล้มเหลว", err));
+
+    // ฟัง event อัปเดตยอดขาย realtime
+    socket.on("today_revenue_updated", (data) => {
+      console.log("ได้รับข้อมูลยอดขาย realtime:", data);
+      setRevenueData(data);
+    });
+
+    // cleanup ถ้า component ถูกถอดออก
+    return () => {
+      socket.off("today_revenue_updated");
+    };
   }, []);
 
   const formatPrice = (price) => {
@@ -319,7 +401,10 @@ const ManageOrders = () => {
               <div>
                 <p className="text-gray-600 text-sm">ยอดขายวันนี้</p>
                 <p className="text-lg font-bold text-green-600">
-                  {formatPrice(revenueData.totalRevenue)}
+                  {/* {formatPrice(revenueData.totalRevenue)} */}
+                     {revenueData?.totalRevenue !== undefined
+          ? revenueData.totalRevenue.toLocaleString()
+          : "กำลังโหลด..."}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-green-500" />
@@ -402,9 +487,7 @@ const ManageOrders = () => {
                   <th className="px-6 py-4 text-white font-semibold text-center">
                     ยอดรวม
                   </th>
-                  <th className="px-6 py-4 text-white font-semibold text-center">
-                    จำนวนลูกค้า
-                  </th>
+                  
                   <th className="px-6 py-4 text-white font-semibold text-center">
                     จัดการ
                   </th>
@@ -443,11 +526,6 @@ const ManageOrders = () => {
                       </td>
                       <td className="px-6 py-4 text-center font-semibold text-green-600">
                         {formatPrice(order.total_price)}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="bg-purple-100 text-purple-800 rounded-full px-3 py-1 text-sm inline-block">
-                          {order.customer_count} คน
-                        </div>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex justify-center gap-2">
@@ -572,12 +650,12 @@ const ManageOrders = () => {
                           รายละเอียดเพิ่มเติม: {item.note}
                         </p>
                       </div>
-                      <div className="text-right">
+                     <div className="text-right">
                         <p className="font-semibold text-green-600">
-                          ราคารวม : {(item.price)} บาท
+                          ราคารวม : {(item.price*item.quantity)} บาท
                         </p>
                         <p className="text-gray-500 text-sm">
-                          {formatPrice(item.price/item.quantity)} / 1 เมนู
+                         ราคาต่อหน่วย : {formatPrice(item.price)} / 1 เมนู
                         </p>
                       </div>
                     </div>
@@ -624,7 +702,9 @@ const ManageOrders = () => {
             <div className="text-gray-600">
               <span className="font-medium">ยอดขายรวม:</span>{" "}
               <span className="text-green-600 font-bold">
-                {formatPrice(revenueData.totalRevenue)}
+                {/* {formatPrice(revenueData.totalRevenue)} */}
+                 {/* {revenueData.totalRevenue.toLocaleString()} */}
+                 
               </span>
             </div>
           </div>
