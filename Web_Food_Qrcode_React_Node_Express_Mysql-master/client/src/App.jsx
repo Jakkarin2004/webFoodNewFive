@@ -23,6 +23,7 @@ import UserMenu from './pages/user/UserMenu'
 import UserProduct from './pages/user/UserProduct'
 import UserHome from './pages/user/UserHome'
 import UserOrderList from './pages/user/UserOrderList';
+import ViewBill from './pages/user/ViewBill';
 
 // Error 
 import Error404Page from './components/Error404Page';
@@ -61,6 +62,7 @@ function App() {
           <Route path="/user-product/table/:table_number" element={<UserProduct />} />
           <Route path="/user-home/table/:table_number" element={<UserHome />} />
           <Route path="/user-orders/table/:table_number" element={<UserOrderList />} />
+          <Route path="/user/viewOrder-list/:order_code" element={<ViewBill />} />
       
           <Route path="/404" element={<Error404Page />} />
           <Route path="*" element={<Error404Page />} />

@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { Link, } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ShoppingCart, Search, Menu, X } from "lucide-react";
 
-const Navbar = ({ tableNumber: propTableNumber }) => {
+const Navbar = ({ tableNumber: propTableNumber, order_code }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [tableNumber, setTableNumber] = useState(null);
+
+  const storedOrder = sessionStorage.getItem("order_code");
+  const orderCodeToUse = order_code || storedOrder;
 
   useEffect(() => {
     // ใช้ prop ก่อน ถ้าไม่มี ค่อยดึงจาก localStorage
     if (propTableNumber) {
       setTableNumber(propTableNumber);
     } else {
-      const storedTable = localStorage.getItem("table_number");
+      const storedTable = sessionStorage .getItem("table_number");
       setTableNumber(storedTable);
     }
   }, [propTableNumber]);
@@ -54,12 +57,14 @@ const Navbar = ({ tableNumber: propTableNumber }) => {
               >
                 เกี่ยวกับเรา
               </Link>
-              <Link
-                to="/contact"
-                className="text-white hover:text-orange-200 transition-colors"
-              >
-                ติดต่อ
-              </Link>
+              {orderCodeToUse && (
+                <Link
+                  to={`/user/viewOrder-list/${orderCodeToUse}`}
+                  className="text-white hover:text-orange-200 transition-colors"
+                >
+                  รายการคำสั่งซื้อ
+                </Link>
+              )}
             </div>
 
             <div className="flex items-center space-x-4">

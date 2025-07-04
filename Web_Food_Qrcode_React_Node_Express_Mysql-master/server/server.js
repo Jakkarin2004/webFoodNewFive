@@ -136,6 +136,9 @@ app.use('/api/user/check-table', checkTableRoute);
 const UserOrderList = require('./routes/user/userOrderList');
 app.use('/api/user/order-list', UserOrderList);
 
+const ViewBill = require('./routes/user/viewBill');
+app.use('/api/user/viewOrder-list', ViewBill);
+
 // ✅ เริ่ม Server
 const PORT = 3000;
 server.listen(PORT, () => {

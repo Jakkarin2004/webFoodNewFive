@@ -38,7 +38,7 @@ const UserMenu = () => {
       .then((res) => {
         console.log("✅ โต๊ะมีอยู่:", res.data);
         // เซฟเลขโต๊ะถ้าเช็คผ่าน
-        localStorage.setItem("table_number", table_number);
+        sessionStorage .setItem("table_number", table_number);
       })
       .catch((err) => {
         console.error("❌ ไม่พบโต๊ะ:", err);
@@ -110,7 +110,7 @@ const UserMenu = () => {
 
   // เพิ่มเมนูลงตะกร้า
   const handleAddToOrder = (menu_id, menu_name, menu_image, price) => {
-    const tableNumber = localStorage.getItem("table_number");
+    const tableNumber = sessionStorage .getItem("table_number");
 
     if (!tableNumber) {
       alert("❌ ไม่พบเลขโต๊ะ กรุณาสแกน QR Code ใหม่");
@@ -118,7 +118,8 @@ const UserMenu = () => {
     }
 
     // ดึง cart เดิมจาก localStorage ถ้าไม่มีให้เริ่มใหม่ พร้อมใส่เลขโต๊ะ
-    let existingCart = JSON.parse(localStorage.getItem("cart")) || {
+    // เปลี่ยนจาก localStorage เป็น sessionStorage
+    let existingCart = JSON.parse(sessionStorage.getItem("cart")) || {
       table_number: tableNumber,
       session_id: uuidv4(),
       items: [],
@@ -155,7 +156,7 @@ const UserMenu = () => {
 
     // เพิ่ม item เข้าไปใน cart และบันทึกลง localStorage พร้อม table_number
     existingCart.items.push(newItem);
-    localStorage.setItem(
+    sessionStorage.setItem(
       "cart",
       JSON.stringify({
         table_number: tableNumber,

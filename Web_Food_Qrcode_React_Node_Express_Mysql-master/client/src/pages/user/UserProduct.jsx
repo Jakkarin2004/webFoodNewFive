@@ -3,53 +3,54 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../../components/user/Navbar";
 import Footer from "../../components/user/Footer";
-import UserOrderList from "./UserOrderList";
+import { v4 as uuidv4 } from "uuid";
 
-// ✅ รวมฟังก์ชันไว้ตรงนี้เลย
 const generateOrderCode = (table_number) => {
   const now = new Date();
-  const timestamp = now.getFullYear().toString().slice(-2)
-    + String(now.getMonth() + 1).padStart(2, '0')
-    + String(now.getDate()).padStart(2, '0')
-    + String(now.getHours()).padStart(2, '0')
-    + String(now.getMinutes()).padStart(2, '0')
-    + String(now.getSeconds()).padStart(2, '0');
+  const timestamp =
+    now.getFullYear().toString().slice(-2) +
+    String(now.getMonth() + 1).padStart(2, "0") +
+    String(now.getDate()).padStart(2, "0") +
+    String(now.getHours()).padStart(2, "0") +
+    String(now.getMinutes()).padStart(2, "0") +
+    String(now.getSeconds()).padStart(2, "0");
 
   return `T${table_number}-${timestamp}`;
 };
-
 
 const API_URL_IMAGE = "http://localhost:3000/uploads/food";
 
 const UserProduct = () => {
   const [cart, setCart] = useState([]);
+  const [hasPendingOrder, setHasPendingOrder] = useState(false);
   const { table_number } = useParams();
   const navigate = useNavigate();
 
-  
-
   useEffect(() => {
-    const storedCart = JSON.parse(localStorage.getItem("cart")) || { items: [] };
-    const validCart = Array.isArray(storedCart.items) ? storedCart.items : [];
+    // เช็คว่ามี order_code อยู่ใน sessionStorage หรือไม่
+    const existingOrderCode = sessionStorage.getItem("order_code");
+    setHasPendingOrder(!!existingOrderCode);
 
-    // ตรวจสอบว่า item มี quantity ถ้าไม่มีให้ใส่ 1
-    const updatedCart = validCart.map(item => ({
+    const storedCart = JSON.parse(sessionStorage.getItem("cart")) || {
+      items: [],
+    };
+    const validCart = Array.isArray(storedCart.items) ? storedCart.items : [];
+    const updatedCart = validCart.map((item) => ({
       ...item,
       quantity: item.quantity || 1,
     }));
-
     setCart(updatedCart);
 
     if (!/^\d+$/.test(table_number)) {
       alert("❌ เลขโต๊ะไม่ถูกต้อง");
-      return navigate("/404");
+      navigate("/404");
+      return;
     }
 
     axios
       .get(`http://localhost:3000/api/user/check-table/${table_number}`)
-      .then((res) => console.log("✅ โต๊ะมีอยู่:", res.data))
-      .catch((err) => {
-        console.error("❌ ไม่พบโต๊ะ:", err);
+      .then(() => {})
+      .catch(() => {
         alert("❌ ไม่พบโต๊ะนี้ในระบบ");
         navigate("/404");
       });
@@ -58,64 +59,74 @@ const UserProduct = () => {
   const updateQuantity = (cartItemId, newQuantity) => {
     if (newQuantity < 1) return;
 
-    const updatedCart = cart.map(item =>
-      item.cartItemId === cartItemId
-        ? { ...item, quantity: newQuantity }
-        : item
+    const updatedCart = cart.map((item) =>
+      item.cartItemId === cartItemId ? { ...item, quantity: newQuantity } : item
     );
 
     setCart(updatedCart);
-    localStorage.setItem("cart", JSON.stringify({ table_number, items: updatedCart }));
-
+    sessionStorage.setItem(
+      "cart",
+      JSON.stringify({ table_number, items: updatedCart })
+    );
   };
 
   const handleRemoveItem = (cartItemIdToDelete) => {
-    const updatedItems = cart.filter(item => item.cartItemId !== cartItemIdToDelete);
-    localStorage.setItem("cart", JSON.stringify({ items: updatedItems }));
+    const updatedItems = cart.filter(
+      (item) => item.cartItemId !== cartItemIdToDelete
+    );
+    sessionStorage.setItem(
+      "cart",
+      JSON.stringify({ table_number, items: updatedItems })
+    );
     setCart(updatedItems);
     alert("ยกเลิกรายการเรียบร้อยแล้ว");
   };
 
   const handleCancelAll = () => {
     if (window.confirm("คุณแน่ใจว่าต้องการยกเลิกคำสั่งซื้อทั้งหมด?")) {
-      localStorage.removeItem("cart");
+      sessionStorage.removeItem("cart");
       setCart([]);
       alert("ยกเลิกคำสั่งซื้อเรียบร้อยแล้ว");
     }
   };
 
   const handleSubmitOrder = async () => {
-  if (!cart.length) {
-    alert("❌ ไม่มีรายการอาหารในคำสั่งซื้อ");
-    return;
-  }
+    if (!cart.length) {
+      alert("❌ ไม่มีรายการอาหารในคำสั่งซื้อ");
+      return;
+    }
 
-  const orderCode = generateOrderCode(table_number);
+    const orderCode = generateOrderCode(table_number);
 
-  const orderData = {
-    order_code: orderCode, // ⬅️ เพิ่มรหัสออเดอร์
-    table_number,
-    items: cart.map((item) => ({
-      menu_id: item.id,
-      quantity: item.quantity,
-      price: parseFloat(item.price),
-      note: item.note,
-      specialRequest: item.specialRequest,
-    })),
+    const orderData = {
+      order_code: orderCode,
+      table_number,
+      items: cart.map((item) => ({
+        menu_id: item.id,
+        quantity: item.quantity,
+        price: parseFloat(item.price),
+        note: item.note,
+        specialRequest: item.specialRequest,
+      })),
+    };
+
+    try {
+      const res = await axios.post(
+        "http://localhost:3000/api/user/order",
+        orderData
+      );
+      alert(`✅ คำสั่งซื้อสำเร็จ!\nรหัสออเดอร์: ${orderCode}`);
+
+      sessionStorage.setItem("order_code", orderCode);
+      sessionStorage.removeItem("cart");
+      setCart([]);
+      setHasPendingOrder(true);
+
+      navigate(`/user/viewOrder-list/${orderCode}`);
+    } catch (error) {
+      alert("❌ เกิดข้อผิดพลาดในการส่งคำสั่งซื้อ");
+    }
   };
-
-  try {
-    const res = await axios.post("http://localhost:3000/api/user/order", orderData);
-    console.log("✅ คำสั่งซื้อสำเร็จ:", res.data);
-    alert(`✅ คำสั่งซื้อสำเร็จ!\nรหัสออเดอร์: ${orderCode}`);
-    localStorage.removeItem("cart");
-    setCart([]);
-  } catch (error) {
-    console.error("❌ ส่งคำสั่งซื้อไม่สำเร็จ:", error);
-    alert("❌ เกิดข้อผิดพลาดในการส่งคำสั่งซื้อ");
-  }
-};
-
 
   const totalPrice = cart.reduce(
     (sum, item) => sum + (parseFloat(item.price) || 0) * (item.quantity || 1),
@@ -128,13 +139,11 @@ const UserProduct = () => {
 
       <div className="container mx-auto px-4 py-8 pt-18">
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          {/* Header */}
           <div className="bg-gradient-to-br from-orange-900 via-black/90 to-orange-800 text-white px-6 py-4">
             <h1 className="text-2xl font-bold">รายการรอคําสั่งซื้อ</h1>
-            <p className="text-orange-100">โต๊ะที่ {table_number}</p>
+            <p className="text-xl font-bold">โต๊ะที่ {table_number}</p>
           </div>
 
-          {/* รายการสินค้า */}
           <div className="p-6">
             {cart.length === 0 ? (
               <div className="text-center py-8 text-gray-500 text-lg">
@@ -158,20 +167,29 @@ const UserProduct = () => {
 
                       <div className="flex-1 flex flex-col md:flex-row gap-4">
                         <div className="flex-1">
-                          <h3 className="text-xl font-bold text-orange-800 mb-2">{item.name}</h3>
+                          <h3 className="text-xl font-bold text-orange-800 mb-2">
+                            {item.name}
+                          </h3>
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             <div className="text-gray-500">รหัสเมนู:</div>
                             <div>{item.id}</div>
                             <div className="text-gray-500">รหัสตะกร้า:</div>
                             <div>{item.cartItemId}</div>
-                            <div className="text-gray-500">รายละเอียดเพิ่มเติมจานอาหาร :</div>
+                            <div className="text-gray-500">
+                              รายละเอียดเพิ่มเติมจานอาหาร :
+                            </div>
                             <div>{item.note || "ไม่มี"}</div>
                             <div className="text-gray-500">คำสั่งพิเศษ :</div>
                             <div>{item.specialRequest || "ไม่มี"}</div>
                             <div className="text-gray-500">จำนวน :</div>
                             <div className="flex items-center space-x-2">
                               <button
-                                onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
+                                onClick={() =>
+                                  updateQuantity(
+                                    item.cartItemId,
+                                    item.quantity - 1
+                                  )
+                                }
                                 className="px-2 py-1 bg-orange-200 rounded hover:bg-orange-300"
                                 disabled={item.quantity <= 1}
                               >
@@ -179,7 +197,12 @@ const UserProduct = () => {
                               </button>
                               <span className="text-lg">{item.quantity}</span>
                               <button
-                                onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
+                                onClick={() =>
+                                  updateQuantity(
+                                    item.cartItemId,
+                                    item.quantity + 1
+                                  )
+                                }
                                 className="px-2 py-1 bg-orange-200 rounded hover:bg-orange-300"
                               >
                                 +
@@ -190,12 +213,19 @@ const UserProduct = () => {
 
                         <div className="flex flex-col items-end justify-between">
                           <p className="text-2xl font-bold text-orange-600 mb-2">
-                            {(parseFloat(item.price) * item.quantity).toFixed(2)} บาท
+                            {(parseFloat(item.price) * item.quantity).toFixed(
+                              2
+                            )}{" "}
+                            บาท
                           </p>
                           <button
                             className="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors flex items-center gap-2"
                             onClick={() => {
-                              if (window.confirm(`ต้องการลบเมนู "${item.name}" หรือไม่?`)) {
+                              if (
+                                window.confirm(
+                                  `ต้องการลบเมนู "${item.name}" หรือไม่?`
+                                )
+                              ) {
                                 handleRemoveItem(item.cartItemId);
                               }
                             }}
@@ -211,7 +241,6 @@ const UserProduct = () => {
             )}
           </div>
 
-          {/* Footer */}
           <div className="bg-orange-50 px-6 py-4 border-t border-orange-100">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-orange-800">ราคารวม :</h3>
@@ -220,24 +249,36 @@ const UserProduct = () => {
               </p>
             </div>
 
-            <div className="flex space-x-4">
+            <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:space-x-4">
               <button
-                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                className={`flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg transition-colors ${
+                  hasPendingOrder ? "opacity-50 cursor-not-allowed" : ""
+                }`}
                 onClick={handleSubmitOrder}
+                disabled={hasPendingOrder}
               >
                 ยืนยันการสั่งซื้อ
               </button>
               <button
-                className="flex-1 bg-white border border-orange-500 text-orange-500 hover:bg-orange-50 font-bold py-3 px-4 rounded-lg transition-colors"
+                className={`flex-1 bg-white border border-orange-500 text-orange-500 hover:bg-orange-50 font-bold py-3 px-4 rounded-lg transition-colors ${
+                  hasPendingOrder ? "opacity-50 cursor-not-allowed" : ""
+                }`}
                 onClick={handleCancelAll}
+                disabled={hasPendingOrder}
               >
                 ยกเลิกคําสั่งซื้อทั้งหมด
               </button>
             </div>
+
+            {hasPendingOrder && (
+              <p className="mt-2 text-red-600 font-medium text-center">
+                ⚠️ คุณมีคำสั่งซื้อค้างอยู่ กรุณายกเลิกคำสั่งซื้อก่อนทำรายการใหม่
+              </p>
+            )}
           </div>
         </div>
       </div>
-            <UserOrderList/>
+
       <Footer />
     </div>
   );
