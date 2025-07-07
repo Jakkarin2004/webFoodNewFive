@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, Save, X, Upload, Star } from "lucide-react";
 import axios from "axios";
-
+//เอาไว้ทำ modal
+import toast from "react-hot-toast";
 
 const API_URL = "http://localhost:3000/api/owner/menu"; // เปลี่ยนเป็น URL จริงของ API
 const API_URL_MENU_TYPE = "http://localhost:3000/api/owner/menu/menu_type"; // เปลี่ยนเป็น URL จริงของ API
@@ -12,6 +13,9 @@ const ManageMenu = () => {
   const [menusType, setMenusType] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingMenu, setEditingMenu] = useState(null);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [menuToDelete, setMenuToDelete] = useState(null);
 
   useEffect(() => {
     fetchMenu();
@@ -28,16 +32,15 @@ const ManageMenu = () => {
   //   }
   // };
   const fetchMenu = async () => {
-  try {
-    const response = await axios.get(API_URL);
-    // สมมติ API คืนข้อมูลแบบ { menus: [...] } หรือ [...direct array]
-    const menusData = response.data.menus || response.data || [];
-    setMenus(menusData);
-  } catch (error) {
-    console.error("❌ เกิดข้อผิดพลาดในการโหลดเมนู:", error);
-  }
-};
-
+    try {
+      const response = await axios.get(API_URL);
+      // สมมติ API คืนข้อมูลแบบ { menus: [...] } หรือ [...direct array]
+      const menusData = response.data.menus || response.data || [];
+      setMenus(menusData);
+    } catch (error) {
+      console.error("❌ เกิดข้อผิดพลาดในการโหลดเมนู:", error);
+    }
+  };
 
   const fetchMenuType = async () => {
     try {
@@ -70,119 +73,124 @@ const ManageMenu = () => {
     setEditingMenu(null);
     setShowForm(false);
   };
-const handleSubmit = async () => {
-  // ตรวจสอบว่าใส่ชื่อเมนูและราคาหรือยัง
-  if (!formData.menu_name || !formData.price) {
-    alert("กรุณากรอกชื่อเมนูและราคา");
-    return;
-  }
-
-  // ตรวจสอบและแปลง menu_type_id
-  if (!formData.menu_type_id) {
-    alert("กรุณาเลือกประเภทเมนู");
-    return;
-  }
-
-  const menuTypeId = parseInt(formData.menu_type_id, 10);
-  if (isNaN(menuTypeId)) {
-    alert("กรุณาเลือกประเภทเมนู");
-    return;
-  }
-
-  // สำหรับ UPDATE ต้องใช้ FormData เสมอ เพราะต้องส่งไฟล์ (หรือ oldImage)
-  const form = new FormData();
-  form.append("menu_name", formData.menu_name.trim());
-  form.append("price", parseFloat(formData.price).toString());
-  form.append("special", formData.special ? "1" : "0");
-  form.append("detail_menu", formData.detail_menu?.trim() || "");
-  form.append("menu_type_id", menuTypeId.toString());
-  
-  // ถ้ามีไฟล์ใหม่
-  if (formData.menu_image_file instanceof File) {
-    form.append("menu_image", formData.menu_image_file);
-  }
-  
-  // ถ้าเป็นการแก้ไข ส่ง oldImage ด้วย
-  if (editingMenu && editingMenu.menu_image) {
-    form.append("oldImage", editingMenu.menu_image);
-  }
-
-  // Debug ตรวจสอบข้อมูลที่กำลังส่ง
-  console.log("=== Debug Form Data ===");
-  for (let pair of form.entries()) {
-    console.log(`${pair[0]}:`, pair[1], typeof pair[1]);
-  }
-
-  try {
-    if (editingMenu) {
-      // สำหรับ UPDATE - ใช้ PUT method
-      await axios.put(
-        `http://localhost:3000/api/owner/menu/${editingMenu.menu_id}`,
-        form,
-        {
-          headers: { "Content-Type": "multipart/form-data" }
-        }
-      );
-      alert("แก้ไขเมนูสำเร็จ!");
-    } else {
-      // สำหรับ CREATE - ใช้ POST method
-      await axios.post("http://localhost:3000/api/owner/menu", form, {
-        headers: { "Content-Type": "multipart/form-data" }
+  const handleSubmit = async () => {
+    // ตรวจสอบว่าใส่ชื่อเมนูและราคาหรือยัง
+    if (!formData.menu_name || !formData.price) {
+      toast("กรุณากรอกชื่อเมนูและราคา", {
+        duration: 3000,
       });
-      alert("เพิ่มเมนูสำเร็จ!");
+      return;
     }
 
-    fetchMenu(); // โหลดเมนูใหม่
-    resetForm(); // เคลียร์ฟอร์ม
-  } catch (error) {
-    console.error("❌ เกิดข้อผิดพลาดในการบันทึกเมนู:", error?.response?.data || error.message);
-    
-    // แสดง error message ที่ชัดเจนขึ้น
-    const errorMessage = error?.response?.data?.error || 
-                        error?.response?.data?.message || 
-                        "เกิดข้อผิดพลาดในการบันทึกเมนู";
-    alert(errorMessage);
-  }
-};
-
-
-const handleEdit = (menu) => {
-  setFormData({
-    menu_name: menu.menu_name,
-    menu_image: menu.menu_image,       // ชื่อไฟล์รูปเก่า
-    menu_image_file: menu.menu_image,              // ยังไม่มีรูปใหม่
-    price: menu.price.toString(),
-    special: menu.special === 1,
-    detail_menu: menu.detail_menu,
-    menu_type_id: menu.menu_type_id.toString(), // แปลงเป็น string
-  });
-  setEditingMenu(menu);
-  setShowForm(true);
-};
-
-
-const handleDelete = async (menuId) => {
-  if (window.confirm("คุณแน่ใจหรือไม่ที่จะลบเมนูนี้?")) {
-    try {
-      // เรียก API ลบเมนู (ตัวอย่างใช้ fetch)
-      const response = await fetch(`http://localhost:3000/api/owner/menu/${menuId}`, {
-        method: 'DELETE',
+    // ตรวจสอบและแปลง menu_type_id
+    if (!formData.menu_type_id) {
+      toast("กรุณาเลือกประเภทเมนู", {
+        duration: 3000,
       });
-      
-      if (!response.ok) {
-        throw new Error('ลบเมนูล้มเหลว');
+      return;
+    }
+
+    const menuTypeId = parseInt(formData.menu_type_id, 10);
+    if (isNaN(menuTypeId)) {
+      toast("กรุณาเลือกประเภทเมนู", {
+        duration: 3000,
+      });
+      return;
+    }
+
+    // สำหรับ UPDATE ต้องใช้ FormData เสมอ เพราะต้องส่งไฟล์ (หรือ oldImage)
+    const form = new FormData();
+    form.append("menu_name", formData.menu_name.trim());
+    form.append("price", parseFloat(formData.price).toString());
+    form.append("special", formData.special ? "1" : "0");
+    form.append("detail_menu", formData.detail_menu?.trim() || "");
+    form.append("menu_type_id", menuTypeId.toString());
+
+    // ถ้ามีไฟล์ใหม่
+    if (formData.menu_image_file instanceof File) {
+      form.append("menu_image", formData.menu_image_file);
+    }
+
+    // ถ้าเป็นการแก้ไข ส่ง oldImage ด้วย
+    if (editingMenu && editingMenu.menu_image) {
+      form.append("oldImage", editingMenu.menu_image);
+    }
+
+    // Debug ตรวจสอบข้อมูลที่กำลังส่ง
+    console.log("=== Debug Form Data ===");
+    for (let pair of form.entries()) {
+      console.log(`${pair[0]}:`, pair[1], typeof pair[1]);
+    }
+
+    try {
+      if (editingMenu) {
+        // สำหรับ UPDATE - ใช้ PUT method
+        await axios.put(
+          `http://localhost:3000/api/owner/menu/${editingMenu.menu_id}`,
+          form,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
+        toast.success("แก้ไขเมนูสำเร็จ!");
+      } else {
+        // สำหรับ CREATE - ใช้ POST method
+        await axios.post("http://localhost:3000/api/owner/menu", form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        toast.success("เพิ่มเมนูสำเร็จ!");
       }
 
-      // ถ้าลบสำเร็จ ให้ลบจาก state เพื่ออัปเดต UI
-      setMenus(menus.filter((menu) => menu.menu_id !== menuId));
+      fetchMenu(); // โหลดเมนูใหม่
+      resetForm(); // เคลียร์ฟอร์ม
     } catch (error) {
-      alert('เกิดข้อผิดพลาดในการลบเมนู: ' + error.message);
+      console.error(
+        "❌ เกิดข้อผิดพลาดในการบันทึกเมนู:",
+        error?.response?.data || error.message
+      );
+
+      // แสดง error message ที่ชัดเจนขึ้น
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        "เกิดข้อผิดพลาดในการบันทึกเมนู";
+      toast.error(errorMessage);
     }
-  }
-};
+  };
 
+  const handleEdit = (menu) => {
+    setFormData({
+      menu_name: menu.menu_name,
+      menu_image: menu.menu_image, // ชื่อไฟล์รูปเก่า
+      menu_image_file: menu.menu_image, // ยังไม่มีรูปใหม่
+      price: menu.price.toString(),
+      special: menu.special, // true ถ้าเป็น 1 (พร้อมเสิร์ฟ), false ถ้าเป็น 0
+      detail_menu: menu.detail_menu,
+      menu_type_id: menu.menu_type_id.toString(), // แปลงเป็น string
+    });
+    setEditingMenu(menu);
+    setShowForm(true);
+  };
 
-    // ฟังก์ชัน handleFileChange ต้องประกาศที่นี่
+  const handleDelete = async (menuId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/owner/menu/${menuId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) throw new Error("ลบเมนูล้มเหลว");
+
+      setMenus(menus.filter((menu) => menu.menu_id !== menuId));
+      toast.success("ลบเมนูสำเร็จ!");
+    } catch (error) {
+      toast.error("เกิดข้อผิดพลาดในการลบเมนู: " + error.message);
+    }
+  };
+
+  // ฟังก์ชัน handleFileChange ต้องประกาศที่นี่
   const handleFileChange = (e) => {
     if (e.target.files.length > 0) {
       setFormData((prev) => ({
@@ -194,8 +202,7 @@ const handleDelete = async (menuId) => {
   };
 
   return (
-
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-4">
       <div className="max-w-9xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl mb-6 p-6 border-l-4 border-orange-500">
@@ -218,8 +225,14 @@ const handleDelete = async (menuId) => {
 
         {/* Form Modal */}
         {showForm && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => resetForm()} // 🟠 คลิกที่พื้นหลัง = ปิด
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()} // 🛑 ป้องกันคลิกทะลุ Modal
+            >
               <div className="p-6 border-b border-gray-200">
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold text-gray-800">
@@ -274,64 +287,64 @@ const handleDelete = async (menuId) => {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     ประเภทเมนู
                   </label>
-                 <select
-  value={formData.menu_type_id || ""}
-  onChange={(e) => {
-    const value = e.target.value;
-    setFormData({
-      ...formData,
-      menu_type_id: value === "" ? "" : parseInt(value, 10),
-    });
-  }}
-  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
->
-  <option value="" disabled>
-    เลือกประเภทเมนู
-  </option>
-  {menusType.map((type) => (
-    <option key={type.menu_type_id} value={type.menu_type_id}>
-      {type.type_name}
-    </option>
-  ))}
-</select>
+                  <select
+                    value={formData.menu_type_id || ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({
+                        ...formData,
+                        menu_type_id: value === "" ? "" : parseInt(value, 10),
+                      });
+                    }}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                  >
+                    <option value="" disabled>
+                      เลือกประเภทเมนู
+                    </option>
+                    {menusType.map((type) => (
+                      <option key={type.menu_type_id} value={type.menu_type_id}>
+                        {type.type_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     รูปภาพเมนู
                   </label>
-    <div className="flex items-center gap-4">
-      <label className="bg-orange-100 hover:bg-orange-200 text-orange-600 px-4 py-3 rounded-xl transition-colors flex items-center gap-2 cursor-pointer">
-        <Upload size={18} />
-        อัพโหลด
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-      </label>
+                  <div className="flex items-center gap-4">
+                    <label className="bg-orange-100 hover:bg-orange-200 text-orange-600 px-4 py-3 rounded-xl transition-colors flex items-center gap-2 cursor-pointer">
+                      <Upload size={18} />
+                      อัพโหลด
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
+                    </label>
 
-      {/* {formData.menu_image_file && (
+                    {/* {formData.menu_image_file && (
         <div className="text-sm text-gray-700">
           ชื่อไฟล์: {formData.menu_image_file.name} (
           {(formData.menu_image_file.size / 1024).toFixed(2)} KB)
         </div>
       )} */}
-          {formData.menu_image_file && (
-      <div className="text-sm text-gray-700">
-        {typeof formData.menu_image_file === "string" ? (
-          <>ชื่อไฟล์เดิม: {formData.menu_image_file}</>
-        ) : (
-          <>
-            ชื่อไฟล์ใหม่: {formData.menu_image_file.name} (
-            {(formData.menu_image_file.size / 1024).toFixed(2)} KB)
-          </>
-        )}
-      </div>
-)}
-
-    </div>
+                    {formData.menu_image_file && (
+                      <div className="text-sm text-gray-700">
+                        {typeof formData.menu_image_file === "string" ? (
+                          <>ชื่อไฟล์เดิม: {formData.menu_image_file}</>
+                        ) : (
+                          <>
+                            ชื่อไฟล์ใหม่: {formData.menu_image_file.name} (
+                            {(formData.menu_image_file.size / 1024).toFixed(2)}{" "}
+                            KB)
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -350,24 +363,29 @@ const handleDelete = async (menuId) => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="special"
-                      checked={formData.special}
-                      onChange={(e) =>
-                        setFormData({ ...formData, special: e.target.checked })
-                      }
-                      className="w-5 h-5 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
-                    />
-                    <label
-                      htmlFor="special"
-                      className="ml-2 text-sm font-semibold text-gray-700"
-                    >
-                      เมนูพิเศษ
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      สถานะเมนู
                     </label>
+                    <select
+                      name="special"
+                      value={formData.special ? "1" : "0"} // ตรวจสอบตรงนี้ดี ๆ
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          special: e.target.value === "1",
+                        })
+                      }
+                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="1" className="text-gray-600">
+                        พร้อมเสิร์ฟ
+                      </option>
+                      <option value="0" className="text-gray-600">
+                        ไม่พร้อมเสิร์ฟ
+                      </option>
+                    </select>
                   </div>
-                  <Star size={18} className="text-orange-400" />
                 </div>
 
                 <div className="flex gap-4 pt-6 border-t border-gray-200">
@@ -478,12 +496,11 @@ const handleDelete = async (menuId) => {
                     <td className="px-6 py-4">
                       {menu.special === 1 ? (
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-orange-100 to-yellow-100 text-orange-700 border border-orange-200">
-                          <Star size={14} className="fill-current" />
-                          เมนูพิเศษ
+                          พร้อมเสิร์ฟ
                         </span>
                       ) : (
                         <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
-                          เมนูทั่วไป
+                          ไม่พร้อมเสิร์ฟ
                         </span>
                       )}
                     </td>
@@ -505,7 +522,10 @@ const handleDelete = async (menuId) => {
                           <Edit2 size={16} />
                         </button>
                         <button
-                          onClick={() => handleDelete(menu.menu_id)}
+                          onClick={() => {
+                            setMenuToDelete(menu.menu_id);
+                            setShowDeleteModal(true);
+                          }}
                           className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors shadow-md transform hover:scale-105"
                           title="ลบ"
                         >
@@ -528,8 +548,38 @@ const handleDelete = async (menuId) => {
           )}
         </div>
       </div>
-    </div>
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/40  flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              ยืนยันการลบเมนู
+            </h2>
+            <p className="text-gray-600 mb-6">
+              คุณแน่ใจหรือไม่ว่าต้องการลบเมนูนี้?
+              การดำเนินการนี้ไม่สามารถย้อนกลับได้
+            </p>
 
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-100"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={async () => {
+                  await handleDelete(menuToDelete);
+                  setShowDeleteModal(false);
+                }}
+                className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold"
+              >
+                ลบเมนู
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

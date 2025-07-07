@@ -9,6 +9,32 @@ const Navbar = ({ tableNumber: propTableNumber, order_code }) => {
   const storedOrder = sessionStorage.getItem("order_code");
   const orderCodeToUse = order_code || storedOrder;
 
+  //ดึงออเดอร์ที่เข้ามานับแล้วแสดงผล
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+    const updateCartCount = () => {
+      const storedCart = JSON.parse(sessionStorage.getItem("cart"));
+      if (storedCart && Array.isArray(storedCart.items)) {
+        const totalQty = storedCart.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        setCartCount(totalQty);
+      } else {
+        setCartCount(0);
+      }
+    };
+
+    // เรียกตอนโหลด
+    updateCartCount();
+
+    // กรณีมีการเปลี่ยนจากหน้าอื่น ให้ดักฟัง event custom (option เพิ่มเติม)
+    window.addEventListener("cartUpdated", updateCartCount);
+
+    // ล้าง event listener เมื่อ unmount
+    return () => window.removeEventListener("cartUpdated", updateCartCount);
+  }, []);
+
+
+
   useEffect(() => {
     // ใช้ prop ก่อน ถ้าไม่มี ค่อยดึงจาก localStorage
     if (propTableNumber) {
@@ -35,16 +61,16 @@ const Navbar = ({ tableNumber: propTableNumber, order_code }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-white text-2xl font-bold">🍽️ FoodieHub</h1>
+              <h1 className="text-white text-2xl font-bold">🍽️ ร้านอาหารป้าอ้อ</h1>
             </div>
 
             <div className="hidden md:flex items-center space-x-8">
-              <Link
+              {/* <Link
                 to={`/user-home/table/${tableNumber}`}
                 className="text-white hover:text-orange-200 transition-colors"
               >
                 หน้าแรก
-              </Link>
+              </Link> */}
               <Link
                 to={`/user-menu/table/${tableNumber}`}
                 className="text-white hover:text-orange-200 transition-colors"
@@ -52,7 +78,7 @@ const Navbar = ({ tableNumber: propTableNumber, order_code }) => {
                 เมนูอาหาร
               </Link>
               <Link
-                to="/about"
+                 to={`/user/viewRes/${tableNumber}`}
                 className="text-white hover:text-orange-200 transition-colors"
               >
                 เกี่ยวกับเรา
@@ -76,7 +102,7 @@ const Navbar = ({ tableNumber: propTableNumber, order_code }) => {
                 <div className="text-white hover:text-orange-200 relative">
                   <ShoppingCart size={20} />
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    3
+                    {cartCount}
                   </span>
                 </div>
               </Link>
@@ -95,12 +121,12 @@ const Navbar = ({ tableNumber: propTableNumber, order_code }) => {
         {isMenuOpen && (
           <div className="md:hidden bg-orange-600">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              <Link
+              {/* <Link
                 to={`/user-home/table/${tableNumber}`}
                 className="text-white block px-3 py-2 hover:bg-orange-700 rounded"
               >
                 หน้าแรก
-              </Link>
+              </Link> */}
               <Link
                 to={`/user-menu/table/${tableNumber}`}
                 className="text-white block px-3 py-2 hover:bg-orange-700 rounded"
@@ -108,17 +134,17 @@ const Navbar = ({ tableNumber: propTableNumber, order_code }) => {
                 เมนูอาหาร
               </Link>
               <Link
-                to="/about"
+                to={`/user/viewRes/${tableNumber}`}
                 className="text-white block px-3 py-2 hover:bg-orange-700 rounded"
               >
                 เกี่ยวกับเรา
               </Link>
-              <Link
+              {/* <Link
                 to="/contact"
                 className="text-white block px-3 py-2 hover:bg-orange-700 rounded"
               >
                 ติดต่อ
-              </Link>
+              </Link> */}
             </div>
           </div>
         )}

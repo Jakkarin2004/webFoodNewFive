@@ -9,8 +9,15 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
+  //เอาไว้เลือกตำแหน่ง
+  const [selectedRole, setSelectedRole] = useState("");
+  const handleSelect = (role) => {
+    setSelectedRole(role);
+  };
+
   // ดึง loading, error, setLoading, setError จาก store มาใช้
-  const { login, isLoggedIn, user, loading, error, setLoading, setError } = useAuthStore();
+  const { login, isLoggedIn, user, loading, error, setLoading, setError } =
+    useAuthStore();
 
   useEffect(() => {
     if (isLoggedIn && user) {
@@ -32,36 +39,37 @@ const Login = () => {
 
   const API_LOGIN = "http://localhost:3000/api/login";
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const setLoading = useAuthStore.getState().setLoading;
-  const setError = useAuthStore.getState().setError;
-  const login = useAuthStore.getState().login;
+    const setLoading = useAuthStore.getState().setLoading;
+    const setError = useAuthStore.getState().setError;
+    const login = useAuthStore.getState().login;
 
-  setLoading(true);
-  setError(null);
+    setLoading(true);
+    setError(null);
 
-  try {
-    const res = await axios.post(API_LOGIN, {
-      username: formData.username,
-      password: formData.password,
-    });
+    try {
+      const res = await axios.post(API_LOGIN, {
+        username: formData.username,
+        password: formData.password,
+      });
 
-    const { token, user } = res.data;
+      const { token, user } = res.data;
 
-    login(user, token); // ✅ เรียกฟังก์ชัน login ได้ตรง ๆ
+      login(user, token); // ✅ เรียกฟังก์ชัน login ได้ตรง ๆ
 
-    alert("เข้าสู่ระบบสำเร็จ!");
-    setFormData({ username: "", password: "" });
-  } catch (err) {
-    const message = err.response?.data?.message || err.message || "Login failed";
-    setError(message);
-    alert("เกิดข้อผิดพลาด: " + message);
-  } finally {
-    setLoading(false);
-  }
-};
+      alert("เข้าสู่ระบบสำเร็จ!");
+      setFormData({ username: "", password: "" });
+    } catch (err) {
+      const message =
+        err.response?.data?.message || err.message || "Login failed";
+      setError(message);
+      alert("เกิดข้อผิดพลาด: " + message);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-orange-200 flex items-center justify-center p-4">
       <div className="absolute inset-0 overflow-hidden">
@@ -76,7 +84,7 @@ const Login = () => {
               <div className="text-3xl">🍽️</div>
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">เข้าสู่ระบบ</h1>
-            <p className="text-orange-100">ยินดีต้อนรับกลับมา!</p>
+            <p className="text-orange-100">ยินดีต้อนรับเข้าสู่ร้านอาหารป้าอ้อ!!</p>
           </div>
 
           <div className="p-6">
@@ -128,6 +136,32 @@ const Login = () => {
                 </div>
               </div>
 
+              <div className="flex gap-4">
+                <button
+                  onClick={() => handleSelect("owner")}
+                  className={`px-6 py-3 rounded-xl font-semibold border transition 
+          ${
+            selectedRole === "owner"
+              ? "bg-orange-500 text-white border-orange-500"
+              : "bg-white text-gray-800 border-gray-300 hover:bg-orange-100"
+          }`}
+                >
+                  เจ้าของร้าน
+                </button>
+
+                <button
+                  onClick={() => handleSelect("staff")}
+                  className={`px-6 py-3 rounded-xl font-semibold border transition 
+          ${
+            selectedRole === "staff"
+              ? "bg-orange-500 text-white border-orange-500"
+              : "bg-white text-gray-800 border-gray-300 hover:bg-orange-100"
+          }`}
+                >
+                  พนักงาน
+                </button>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
@@ -163,7 +197,7 @@ const Login = () => {
         </div>
 
         <div className="text-center mt-6">
-          <p className="text-gray-600 text-sm">ร้านอาหารดีๆ สำหรับทุกคน</p>
+          <p className="text-gray-600 text-sm">ร้านอาหารป้าอ้อ</p>
           <p className="text-gray-500 text-xs mt-1">
             © 2025 Restaurant Management System
           </p>

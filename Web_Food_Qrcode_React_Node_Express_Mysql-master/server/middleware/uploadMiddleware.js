@@ -113,10 +113,10 @@ function deleteOldImage(folderName) {
 
 module.exports = {
     uploadFoodImage: createUploader("food"),// middleware upload ไฟล์ในโฟลเดอร์ food
-    // uploadUserImage: createUploader("profile"),
+    uploadStoreImage: createUploader("store"),
     uploadQrcodeImage: createUploader("qrcode"),
     deleteOldFoodImage: deleteOldImage("food"),// middleware ลบรูปเก่าในโฟลเดอร์ food
-    // deleteOldUserImage: deleteOldImage("profile"),
+    deleteOldStoreImage: deleteOldImage("store"),
     // deleteOldQrcodeImage: deleteOldImage("qrcode"),
     
     ensureDir

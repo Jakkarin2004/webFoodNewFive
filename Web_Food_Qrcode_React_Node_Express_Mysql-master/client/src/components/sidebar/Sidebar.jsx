@@ -3,6 +3,7 @@ import {
   Home,
   BarChart3,
   Users,
+  User,
   ShoppingCart,
   Menu,
   Settings,
@@ -15,7 +16,9 @@ import {
   Star,
   CreditCard,
   Bell,
-  Calendar
+  Calendar,
+  Store,
+  
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from "../../stores/authStore";
@@ -139,16 +142,28 @@ useEffect(() => {
 
 
   const menuItems = [
+    // {
+    //   id: 'dashboard',
+    //   label: 'หน้าหลัก',
+    //   icon: Home,
+    //   // active: true,
+    //   path: '/',
+    // },
+        {
+      id: 'calendar',
+      label: 'จัดการร้าน',
+      icon: Store ,
+       path: '/'
+    },
     {
-      id: 'dashboard',
-      label: 'หน้าหลัก',
-      icon: Home,
-      // active: true,
-      path: '/',
+      id: 'owner',
+      label: 'จัดข้อมูล',
+      icon: User ,
+       path: '/profile'
     },
     {
       id: 'orders',
-      label: 'ออเดอร์',
+      label: 'คำสั่งซื้อ',
       icon: ShoppingCart,
       badge: orderCount > 0 ? orderCount.toString() : null,
       path: '/orders',
@@ -184,20 +199,22 @@ useEffect(() => {
         {
       id: 'history',
       label: 'ประวัติคำสั่งซื้อ',
-      icon: Gift
-      , path: '/order-history'
+      icon: FileText,
+      path: '/order-history'
 
     },
-    {
-      id: 'billing',
-      label: 'บิลและชำระเงิน',
-      icon: CreditCard
-    },
+    // {
+    //   id: 'billing',
+    //   label: 'บิลและชำระเงิน',
+    //   icon: CreditCard
+    // },
     // {
     //   id: 'calendar',
-    //   label: 'ปฏิทิน',
-    //   icon: Calendar
+    //   label: 'จัดการร้าน',
+    //   icon: Store ,
+    //    path: '/'
     // },
+    
     {
       id: 'notifications',
       label: 'การแจ้งเตือน',
@@ -309,8 +326,8 @@ useEffect(() => {
                   <span className="text-white font-bold text-lg">🍽️</span>
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold text-gray-800">ร้านอาหาร</h1>
-                  <p className="text-xs text-gray-600">ระบบจัดการ</p>
+                  <h1 className="text-lg font-bold text-gray-800">ร้านอาหารป้าอ้อ</h1>
+                  <p className="text-xs text-gray-600">ระบบจัดการเมนูร้านอาหารดิจิทัล</p>
                 </div>
               </div>
             )}

@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../../components/user/Navbar";
 import Footer from "../../components/user/Footer";
-import { v4 as uuidv4 } from "uuid";
+
+import toast from "react-hot-toast";
 
 const generateOrderCode = (table_number) => {
   const now = new Date();
@@ -20,11 +21,107 @@ const generateOrderCode = (table_number) => {
 
 const API_URL_IMAGE = "http://localhost:3000/uploads/food";
 
+// ConfirmModal Component ย่อยในไฟล์เดียวกัน
+const ConfirmModal = ({ show, title, message, onConfirm, onCancel }) => {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg">
+        <h2 className="text-xl font-bold mb-4">{title}</h2>
+        <p className="mb-6">{message}</p>
+        <div className="flex justify-end gap-4">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
+          >
+            ยกเลิก
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600"
+          >
+            ยืนยัน
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CancelModal = ({ show, title, message, onConfirm, onCancel }) => {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+      <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl text-center animate-fade-in">
+        <h2 className="text-xl font-semibold mb-4 text-orange-700">{title}</h2>
+        <p className="mb-6 text-gray-700">{message}</p>
+        <div className="flex justify-center gap-4">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
+          >
+            ยกเลิก
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600"
+          >
+            ยืนยัน
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CancelAllModal = ({ show, onConfirm, onCancel }) => {
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+      <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl text-center animate-fade-in">
+        <div className="text-5xl text-red-500 mb-4">⚠️</div>
+        <h2 className="text-xl font-semibold mb-2 text-orange-800">
+          ยกเลิกคำสั่งซื้อทั้งหมด
+        </h2>
+        <p className="text-gray-700 mb-6">
+          คุณแน่ใจหรือไม่ว่าต้องการยกเลิกคำสั่งซื้อทั้งหมด?
+          การกระทำนี้ไม่สามารถย้อนกลับได้
+        </p>
+        <div className="flex justify-center gap-4">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
+          >
+            ยกเลิก
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600"
+          >
+            ยืนยัน
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const UserProduct = () => {
   const [cart, setCart] = useState([]);
   const [hasPendingOrder, setHasPendingOrder] = useState(false);
   const { table_number } = useParams();
   const navigate = useNavigate();
+
+  //modal cancle เมนูเดียว
+  const [itemToRemove, setItemToRemove] = useState(null);
+  const [showRemoveItemModal, setShowRemoveItemModal] = useState(false);
+
+  //ยินยันคำสั่งซื้อ
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  //ลบคำสั่งซื้อทั้งหมด
+  const [showCancelAllModal, setShowCancelAllModal] = useState(false);
 
   useEffect(() => {
     // เช็คว่ามี order_code อยู่ใน sessionStorage หรือไม่
@@ -68,6 +165,8 @@ const UserProduct = () => {
       "cart",
       JSON.stringify({ table_number, items: updatedCart })
     );
+
+    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   const handleRemoveItem = (cartItemIdToDelete) => {
@@ -79,20 +178,24 @@ const UserProduct = () => {
       JSON.stringify({ table_number, items: updatedItems })
     );
     setCart(updatedItems);
-    alert("ยกเลิกรายการเรียบร้อยแล้ว");
+    toast.error("ยกเลิกรายการเรียบร้อยแล้ว!");
+    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   const handleCancelAll = () => {
-    if (window.confirm("คุณแน่ใจว่าต้องการยกเลิกคำสั่งซื้อทั้งหมด?")) {
-      sessionStorage.removeItem("cart");
-      setCart([]);
-      alert("ยกเลิกคำสั่งซื้อเรียบร้อยแล้ว");
-    }
+    sessionStorage.removeItem("cart");
+    setCart([]);
+    toast.error("ยกเลิกคำสั่งซื้อเรียบร้อยแล้ว!");
+    setShowCancelAllModal(false);
+    window.dispatchEvent(new Event("cartUpdated"));
   };
 
-  const handleSubmitOrder = async () => {
+  // ฟังก์ชันส่งคำสั่งซื้อจริง ๆ หลัง confirm
+  const handleConfirmSubmitOrder = async () => {
+    setShowConfirmModal(false);
+
     if (!cart.length) {
-      alert("❌ ไม่มีรายการอาหารในคำสั่งซื้อ");
+      toast.error("เกิดข้อผิดพลาดในการส่งคำสั่งซื้อ!");
       return;
     }
 
@@ -111,12 +214,8 @@ const UserProduct = () => {
     };
 
     try {
-      const res = await axios.post(
-        "http://localhost:3000/api/user/order",
-        orderData
-      );
-      alert(`✅ คำสั่งซื้อสำเร็จ!\nรหัสออเดอร์: ${orderCode}`);
-
+      await axios.post("http://localhost:3000/api/user/order", orderData);
+      toast.success("ยืนยันคำสั่งซื้อสำเร็จ!");
       sessionStorage.setItem("order_code", orderCode);
       sessionStorage.removeItem("cart");
       setCart([]);
@@ -124,8 +223,9 @@ const UserProduct = () => {
 
       navigate(`/user/viewOrder-list/${orderCode}`);
     } catch (error) {
-      alert("❌ เกิดข้อผิดพลาดในการส่งคำสั่งซื้อ");
+      toast.error("เกิดข้อผิดพลาดในการส่งคำสั่งซื้อ!");
     }
+    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   const totalPrice = cart.reduce(
@@ -221,13 +321,8 @@ const UserProduct = () => {
                           <button
                             className="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors flex items-center gap-2"
                             onClick={() => {
-                              if (
-                                window.confirm(
-                                  `ต้องการลบเมนู "${item.name}" หรือไม่?`
-                                )
-                              ) {
-                                handleRemoveItem(item.cartItemId);
-                              }
+                              setItemToRemove(item);
+                              setShowRemoveItemModal(true);
                             }}
                           >
                             🗑 ยกเลิกรายการ
@@ -250,20 +345,23 @@ const UserProduct = () => {
             </div>
 
             <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:space-x-4">
+              {/* ปุ่มยืนยันคำสั่งซื้อ */}
               <button
                 className={`flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg transition-colors ${
                   hasPendingOrder ? "opacity-50 cursor-not-allowed" : ""
                 }`}
-                onClick={handleSubmitOrder}
+                onClick={() => setShowConfirmModal(true)}
                 disabled={hasPendingOrder}
               >
                 ยืนยันการสั่งซื้อ
               </button>
+
+              {/* ปุ่มยกเลิกคำสั่งซื้อทั้งหมด */}
               <button
                 className={`flex-1 bg-white border border-orange-500 text-orange-500 hover:bg-orange-50 font-bold py-3 px-4 rounded-lg transition-colors ${
                   hasPendingOrder ? "opacity-50 cursor-not-allowed" : ""
                 }`}
-                onClick={handleCancelAll}
+                onClick={() => setShowCancelAllModal(true)}
                 disabled={hasPendingOrder}
               >
                 ยกเลิกคําสั่งซื้อทั้งหมด
@@ -279,7 +377,38 @@ const UserProduct = () => {
         </div>
       </div>
 
+      {/* Modal */}
+      <ConfirmModal
+        show={showConfirmModal}
+        onConfirm={handleConfirmSubmitOrder}
+        onCancel={() => setShowConfirmModal(false)}
+        title="ยืนยันคำสั่งซื้อ"
+        message="คุณแน่ใจว่าต้องการยืนยันคำสั่งซื้อนี้หรือไม่?"
+      />
+
       <Footer />
+
+      <CancelModal
+        show={showRemoveItemModal}
+        onConfirm={() => {
+          if (itemToRemove) {
+            handleRemoveItem(itemToRemove.cartItemId);
+            setItemToRemove(null);
+            setShowRemoveItemModal(false);
+          }
+        }}
+        onCancel={() => setShowRemoveItemModal(false)}
+        title="ยกเลิกรายการ"
+        message={`คุณแน่ใจว่าต้องการลบเมนู "${itemToRemove?.name}" หรือไม่?`}
+      />
+
+      <CancelAllModal
+        show={showCancelAllModal}
+        onConfirm={handleCancelAll}
+        onCancel={() => setShowCancelAllModal(false)}
+      />
+
+      
     </div>
   );
 };

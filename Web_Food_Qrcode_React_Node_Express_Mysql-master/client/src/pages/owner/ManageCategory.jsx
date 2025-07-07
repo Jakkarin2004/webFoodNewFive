@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Plus, Edit, Trash2, Save, X, Search, Filter } from "lucide-react";
+//เอาไว้ทำ modal
+import toast from "react-hot-toast";
 
 const API_URL = "http://localhost:3000/api/owner/menu-types"; // เปลี่ยนเป็น URL จริงของ API
 
@@ -15,6 +17,9 @@ const ManageCategory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
+
+  //modal delete
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   // โหลดข้อมูลจาก API
   useEffect(() => {
@@ -41,32 +46,33 @@ const ManageCategory = () => {
 
     try {
       await axios.post(API_URL, { type_name: formData.type_name });
-      alert("เพิ่มหมวดหมู่สำเร็จ");
+      toast.success("เพิ่มหมวดหมู่สำเร็จ!");
       setFormData({ type_name: "" });
-      fetchCategories();  // โหลดข้อมูลใหม่หลังเพิ่ม
+      fetchCategories(); // โหลดข้อมูลใหม่หลังเพิ่ม
     } catch (error) {
       console.error(
         "❌ เพิ่มหมวดหมู่ล้มเหลว:",
         error.response?.data || error.message
       );
-      alert(error.response?.data?.error || "เกิดข้อผิดพลาดในการเพิ่มหมวดหมู่");
+      toast.error(
+        error.response?.data?.error || "เกิดข้อผิดพลาดในการเพิ่มหมวดหมู่"
+      );
     }
   };
 
-
-
-
- const handleDelete = async (id) => {
-  try {
-    await axios.delete(`${API_URL}/${id}`);
-    alert("ลบข้อมูลสำเร็จ");
-    fetchCategories(); // โหลดข้อมูลใหม่หลังลบ
-  } catch (error) {
-    console.error("❌ ลบข้อมูลล้มเหลว:", error.response?.data || error.message);
-    alert(error.response?.data?.error || "เกิดข้อผิดพลาดในการลบข้อมูล");
-  }
-};
-
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/${id}`);
+      toast.success("ลบข้อมูลสำเร็จ!");
+      fetchCategories(); // โหลดข้อมูลใหม่หลังลบ
+    } catch (error) {
+      console.error(
+        "❌ ลบข้อมูลล้มเหลว:",
+        error.response?.data || error.message
+      );
+      toast.error(error.response?.data?.error || "เกิดข้อผิดพลาดในการลบข้อมูล");
+    }
+  };
 
   const filteredAndSortedCategories = categories
     .filter((category) =>
@@ -96,7 +102,6 @@ const ManageCategory = () => {
   };
 
   return (
-    
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 p-4">
       <div className="max-w-8xl mx-auto">
         {/* Header with gradient and shadow */}
@@ -120,48 +125,16 @@ const ManageCategory = () => {
           </div>
         </div>
 
-        {/* Search & Filter Controls */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="ค้นหาหมวดหมู่อาหาร..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all duration-200 bg-gray-50 focus:bg-white"
-              />
-            </div>
-            <div className="flex gap-3">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-400 focus:ring-2 focus:ring-orange-100 bg-white min-w-[140px]"
-              >
-                <option value="type_name">ชื่อหมวดหมู่</option>
-                <option value="created_at">วันที่สร้าง</option>
-                <option value="updated_at">วันที่แก้ไข</option>
-              </select>
-              <button
-                onClick={() =>
-                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                }
-                className="px-4 py-3 border-2 border-gray-200 rounded-xl hover:border-orange-300 hover:bg-orange-50 transition-all duration-200 flex items-center gap-2 bg-white"
-              >
-                <Filter className="w-4 h-4" />
-                <span className="text-lg">
-                  {sortOrder === "asc" ? "↑" : "↓"}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* Enhanced Modal */}
         {isFormOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-gray-100 transform animate-in zoom-in-95 duration-200">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => resetForm()} // 🟠 คลิกที่พื้นหลัง = ปิด
+          >
+            <div
+              className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-gray-100 transform animate-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()} // 🛑 ป้องกันคลิกทะลุ Modal
+            >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">
                   {editingId ? "แก้ไขหมวดหมู่" : "เพิ่มหมวดหมู่ใหม่"}
@@ -219,8 +192,8 @@ const ManageCategory = () => {
             <table className="w-full">
               <thead>
                 <tr className="bg-gradient-to-r from-orange-500 to-amber-500">
-                  <th className="px-6 py-4 text-white font-semibold text-left">
-                    #
+                  <th className="px-6 py-4 text-white font-semibold text-center">
+                    ลำดับ
                   </th>
                   <th className="px-6 py-4 text-white font-semibold text-left">
                     ชื่อหมวดหมู่
@@ -263,7 +236,7 @@ const ManageCategory = () => {
                     <td className="px-6 py-4 text-center">
                       <div className="flex justify-center gap-2">
                         <button
-                          onClick={() => handleDelete(cat.menu_type_id)}
+                          onClick={() => setConfirmDeleteId(cat.menu_type_id)}
                           className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-all duration-200 transform hover:scale-110"
                           title="ลบ"
                         >
@@ -309,9 +282,37 @@ const ManageCategory = () => {
           </div>
         </div>
       </div>
+      {confirmDeleteId && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              ยืนยันการลบ
+            </h2>
+            <p className="text-gray-600 mb-6">
+              คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่นี้?
+              การกระทำนี้ไม่สามารถย้อนกลับได้
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={async () => {
+                  await handleDelete(confirmDeleteId);
+                  setConfirmDeleteId(null);
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-md"
+              >
+                ยืนยันลบ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-    
-
   );
 };
 

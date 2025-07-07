@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../../components/user/Navbar";
 
+//เอาไว้ทำ modal
+import toast from "react-hot-toast";
+
 const ViewBill = () => {
   const { order_code } = useParams();
   const navigate = useNavigate();
@@ -33,7 +36,7 @@ const ViewBill = () => {
       }));
 
       sessionStorage.removeItem("order_code");
-      alert("✅ ยกเลิกคำสั่งซื้อเรียบร้อยแล้ว");
+      toast.error("ยกเลิกคำสั่งซื้อเรียบร้อยแล้ว!");
       setShowCancelModal(false);
       navigate(`/user-menu/table/${order?.order?.table_number}`);
     } catch (error) {
