@@ -116,6 +116,74 @@
 
 // export default useAuthStore;
 // store/useAuthStore.js
+// import { create } from 'zustand';
+// import { persist, devtools } from 'zustand/middleware';
+
+// const useAuthStore = create(
+//   persist(
+//     devtools(
+//       (set) => ({
+//         user: null,
+//         token: null,
+//         isLoggedIn: false,
+//         error: null,
+//         loading: false,
+//         _hasHydrated: false, // ✅ สำหรับเช็คว่า hydrate เสร็จหรือยัง
+
+//         setLoading: (loading) => set({ loading }),
+//         setError: (error) => set({ error }),
+
+//         login: (userData, token) => {
+//           try {
+//             set({
+//               user: userData,
+//               token,
+//               isLoggedIn: true,
+//               error: null,
+//             });
+//           } catch (err) {
+//             set({ error: err.message || 'Login failed' });
+//             throw err;
+//           }
+//         },
+
+//         logout: () => {
+//           try {
+//             set({
+//               user: null,
+//               token: null,
+//               isLoggedIn: false,
+//               error: null,
+//               loading: false,
+//             });
+//           } catch (err) {
+//             set({ error: err.message || 'Logout failed' });
+//           }
+//         },
+
+//         setHasHydrated: (value) => set({ _hasHydrated: value }),
+//       }),
+//       { name: 'AuthStore' }
+//     ),
+//     {
+//       name: 'auth-storage',
+//       getStorage: () => localStorage,
+//       partialize: (state) => ({
+//         user: state.user,
+//         token: state.token,
+//         isLoggedIn: state.isLoggedIn,
+//       }),
+//       onRehydrateStorage: () => (state) => {
+//         state.setHasHydrated(true);
+//         if (state.token && state.user) {
+//           state.isLoggedIn = true;
+//         }
+//       },
+//     }
+//   )
+// );
+
+// export default useAuthStore;
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 
@@ -125,10 +193,11 @@ const useAuthStore = create(
       (set) => ({
         user: null,
         token: null,
+        role: null,           // ✅ เพิ่ม role แยกต่างหาก
         isLoggedIn: false,
         error: null,
         loading: false,
-        _hasHydrated: false, // ✅ สำหรับเช็คว่า hydrate เสร็จหรือยัง
+        _hasHydrated: false,
 
         setLoading: (loading) => set({ loading }),
         setError: (error) => set({ error }),
@@ -138,6 +207,7 @@ const useAuthStore = create(
             set({
               user: userData,
               token,
+              role: userData.role || null,  // ✅ ดึง role จาก userData
               isLoggedIn: true,
               error: null,
             });
@@ -152,6 +222,7 @@ const useAuthStore = create(
             set({
               user: null,
               token: null,
+              role: null,             // ✅ ล้าง role เมื่อ logout
               isLoggedIn: false,
               error: null,
               loading: false,
@@ -171,6 +242,7 @@ const useAuthStore = create(
       partialize: (state) => ({
         user: state.user,
         token: state.token,
+        role: state.role,              // ✅ บันทึก role ด้วย
         isLoggedIn: state.isLoggedIn,
       }),
       onRehydrateStorage: () => (state) => {

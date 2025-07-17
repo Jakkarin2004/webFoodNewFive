@@ -586,10 +586,6 @@ const ManageStaff = () => {
               <div className="text-gray-600 text-sm">พนักงาน</div>
             </div> */}
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-200 text-center text-gray-600">
-            <span className="font-medium">กำลังแสดง:</span>{" "}
-            {filteredAndSortedStaff.length} คน
-          </div>
         </div>
       </div>
 

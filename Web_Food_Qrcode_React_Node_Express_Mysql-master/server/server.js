@@ -33,6 +33,13 @@ io.on("connection", (socket) => {
     .catch(err => {
       console.error("❌ ดึงจำนวนออเดอร์วันนี้ล้มเหลว:", err);
     });
+     //  ดึงฟังก์ชันที่จัดการอัปเดตสถานะ
+  // const orderStatusHandler = require("./routes/owner/orderStatusHandler");
+  // orderStatusHandler(io, socket);
+  // socket.on("join_order", (order_code) => {
+  //   socket.join(order_code);
+  //   console.log(`Client ${socket.id} joined room ${order_code}`);
+  // });
 
   socket.on("disconnect", () => {
     console.log("🔴 Client disconnected:", socket.id);
@@ -75,6 +82,13 @@ app.use("/api/owner/order-history", orderHistory);
 
 const store = require('./routes/owner/store');
 app.use("/api/owner/store",store)
+
+// Staff
+const manageProfileStaff = require('./routes/staff/manageProfileStaff')
+app.use("/api/staff",manageProfileStaff)
+
+const staffManageOrder = require('./routes/staff/staffManageOrder')
+app.use('/api/staff/orders',staffManageOrder)
 
 // User
 const userHome = require('./routes/user/userHome');

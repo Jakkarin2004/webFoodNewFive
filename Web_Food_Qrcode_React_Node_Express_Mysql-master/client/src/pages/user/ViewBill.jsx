@@ -2,9 +2,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../../components/user/Navbar";
-
+import io from "socket.io-client";
 //เอาไว้ทำ modal
 import toast from "react-hot-toast";
+const socket = io("http://localhost:3000"); // เปลี่ยนตาม URL backend จริง
 
 const ViewBill = () => {
   const { order_code } = useParams();
@@ -13,12 +14,36 @@ const ViewBill = () => {
   const [loading, setLoading] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
+   // ดึงข้อมูล order ตอนแรก
   useEffect(() => {
     axios
       .get(`http://localhost:3000/api/user/viewOrder-list/${order_code}`)
       .then((res) => setOrder(res.data))
       .catch(() => alert("❌ ไม่พบคำสั่งซื้อนี้"));
   }, [order_code]);
+
+  // ฟัง event order_status_updated แบบ realtime
+  useEffect(() => {
+    const handleStatusUpdate = ({ orderId, status }) => {
+      // เช็คว่า orderId ตรงกับ order ของ user หรือไม่
+      if (order?.order?.order_id === orderId) {
+        setOrder((prevOrder) => ({
+          ...prevOrder,
+          order: {
+            ...prevOrder.order,
+            status,
+          },
+        }));
+        // toast.success(`สถานะคำสั่งซื้ออัปเดตเป็น: ${status}`);
+      }
+    };
+
+    socket.on("order_status_updated", handleStatusUpdate);
+
+    return () => {
+      socket.off("order_status_updated", handleStatusUpdate);
+    };
+  }, [order]);
 
   const handleCancelOrder = async () => {
     setLoading(true);
@@ -46,6 +71,7 @@ const ViewBill = () => {
       setLoading(false);
     }
   };
+
 
   const handleConfirmOrder = async () => {
     if (!window.confirm("คุณแน่ใจหรือไม่ว่าได้รับอาหารครบถ้วนแล้ว?")) return;

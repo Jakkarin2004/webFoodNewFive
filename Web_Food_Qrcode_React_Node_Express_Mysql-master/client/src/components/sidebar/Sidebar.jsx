@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Home,
   BarChart3,
@@ -18,9 +18,9 @@ import {
   Bell,
   Calendar,
   Store,
-  
-} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+  LogOut,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import useAuthStore from "../../stores/authStore";
 import axios from "axios";
 import { io } from "socket.io-client";
@@ -30,87 +30,83 @@ const socket = io("http://localhost:3000"); // ปรับตาม backend
 
 const Sidebar = ({ children, isOpen = true, onToggle }) => {
   const [collapsed, setCollapsed] = useState(!isOpen);
-//  const [orderCount, setOrderCount] = useState(0);
+  //  const [orderCount, setOrderCount] = useState(0);
   const [orderCount, setOrderCount] = useState(0);
+  const logout = useAuthStore((state) => state.logout);
 
-    const token = useAuthStore((state) => state.token);
+  const token = useAuthStore((state) => state.token);
 
-    // ฟังก์ชันโหลดออเดอร์ใหม่
+  // ฟังก์ชันโหลดออเดอร์ใหม่
 
+  // useEffect(() => {
+  //   const socket = io("http://localhost:3000");
 
-// useEffect(() => {
-//   const socket = io("http://localhost:3000");
+  //   socket.on("connect", () => {
+  //     console.log("Socket connected:", socket.id);
+  //   });
 
-//   socket.on("connect", () => {
-//     console.log("Socket connected:", socket.id);
-//   });
+  //   socket.on("connect_error", (err) => {
+  //     console.error("Socket connection error:", err);
+  //   });
 
-//   socket.on("connect_error", (err) => {
-//     console.error("Socket connection error:", err);
-//   });
+  //   // ฟัง event orderCountUpdated
+  //   socket.on("orderCountUpdated", (data) => {
+  //     console.log("Received orderCountUpdated:", data);
+  //     setOrderCount(data.count);
+  //   });
 
-//   // ฟัง event orderCountUpdated
-//   socket.on("orderCountUpdated", (data) => {
-//     console.log("Received orderCountUpdated:", data);
-//     setOrderCount(data.count);
-//   });
+  //   return () => {
+  //     socket.disconnect();
+  //   };
+  // }, []);
+  useEffect(() => {
+    if (!token) return;
 
-//   return () => {
-//     socket.disconnect();
-//   };
-// }, []);
-useEffect(() => {
-  if (!token) return;
+    const socket = io("http://localhost:3000", {
+      auth: { token }, // ส่ง token ถ้าต้องการ
+    });
 
-  const socket = io("http://localhost:3000", {
-    auth: { token }, // ส่ง token ถ้าต้องการ
-  });
+    socket.on("connect", () => {
+      console.log("Socket connected:", socket.id);
+    });
 
-  socket.on("connect", () => {
-    console.log("Socket connected:", socket.id);
-  });
+    socket.on("orderCountUpdated", (data) => {
+      console.log("Received orderCountUpdated:", data);
+      setOrderCount(data.count);
+    });
 
-  socket.on("orderCountUpdated", (data) => {
-    console.log("Received orderCountUpdated:", data);
-    setOrderCount(data.count);
-  });
+    socket.on("disconnect", () => {
+      console.log("Socket disconnected");
+    });
 
-  socket.on("disconnect", () => {
-    console.log("Socket disconnected");
-  });
+    // clean up เมื่อ component ถูก unmount หรือ token เปลี่ยนแปลง
+    return () => {
+      socket.off("connect");
+      socket.off("orderCountUpdated");
+      socket.off("disconnect");
+      socket.disconnect();
+    };
+  }, [token]);
 
-  // clean up เมื่อ component ถูก unmount หรือ token เปลี่ยนแปลง
-  return () => {
-    socket.off("connect");
-    socket.off("orderCountUpdated");
-    socket.off("disconnect");
-    socket.disconnect();
-  };
-}, [token]);
+  //  useEffect(() => {
+  //     // ฟัง event จำนวนออเดอร์ที่ยังไม่เสร็จ
+  //     socket.on("orderCountUpdated", (data) => {
+  //       console.log("Received orderCountUpdated:", data.count);
+  //       setOrderCount(data.count);
+  //     });
 
+  //     // ฟัง event ยอดขายวันนี้
+  //     socket.on("today_revenue_updated", (data) => {
+  //       console.log("Received today_revenue_updated:", data);
+  //       setTodayRevenue(data);
+  //     });
 
-
-
- 
-//  useEffect(() => {
-//     // ฟัง event จำนวนออเดอร์ที่ยังไม่เสร็จ
-//     socket.on("orderCountUpdated", (data) => {
-//       console.log("Received orderCountUpdated:", data.count);
-//       setOrderCount(data.count);
-//     });
-
-//     // ฟัง event ยอดขายวันนี้
-//     socket.on("today_revenue_updated", (data) => {
-//       console.log("Received today_revenue_updated:", data);
-//       setTodayRevenue(data);
-//     });
-
-//     // ล้าง event listener เมื่อ component unmount
-//     return () => {
-//       socket.off("orderCountUpdated");
-//       socket.off("today_revenue_updated");
-//     };
-//   }, []);
+  //     // ล้าง event listener เมื่อ component unmount
+  //     return () => {
+  //       socket.off("orderCountUpdated");
+  //       socket.off("today_revenue_updated");
+  //     };
+  //   }, []);
 
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
@@ -119,27 +115,25 @@ useEffect(() => {
   const navigate = useNavigate();
   console.log("orderCount:", orderCount);
 
+  // useEffect(() => {
+  //   const fetchOrderCount = async () => {
+  //     try {
+  //       const token = useAuthStore.getState().token;
+  //       console.log('orderCount:', orderCount); // ✅ ควรมีค่า เช่น 3
 
-// useEffect(() => {
-//   const fetchOrderCount = async () => {
-//     try {
-//       const token = useAuthStore.getState().token;
-//       console.log('orderCount:', orderCount); // ✅ ควรมีค่า เช่น 3
+  //       const res = await axios.get('http://localhost:3000/api/owner/orders/count', {
+  //         headers: {
+  //           Authorization: `Bearer ${token}` // ถ้ามี verifyToken
+  //         }
+  //       });
+  //       setOrderCount(res.data.count);
+  //     } catch (err) {
+  //       console.error('โหลดจำนวนออเดอร์ล้มเหลว:', err);
+  //     }
+  //   };
 
-//       const res = await axios.get('http://localhost:3000/api/owner/orders/count', {
-//         headers: {
-//           Authorization: `Bearer ${token}` // ถ้ามี verifyToken
-//         }
-//       });
-//       setOrderCount(res.data.count);
-//     } catch (err) {
-//       console.error('โหลดจำนวนออเดอร์ล้มเหลว:', err);
-//     }
-//   };
-
-//   fetchOrderCount();
-// }, []);
-
+  //   fetchOrderCount();
+  // }, []);
 
   const menuItems = [
     // {
@@ -149,46 +143,45 @@ useEffect(() => {
     //   // active: true,
     //   path: '/',
     // },
-        {
-      id: 'calendar',
-      label: 'จัดการร้าน',
-      icon: Store ,
-       path: '/'
+    {
+      id: "calendar",
+      label: "จัดการร้าน",
+      icon: Store,
+      path: "/",
     },
     {
-      id: 'owner',
-      label: 'จัดข้อมูล',
-      icon: User ,
-       path: '/profile'
+      id: "owner",
+      label: "ข้อมูลส่วนตัว",
+      icon: User,
+      path: "/profile",
     },
     {
-      id: 'orders',
-      label: 'คำสั่งซื้อ',
+      id: "orders",
+      label: "คำสั่งซื้อ",
       icon: ShoppingCart,
       badge: orderCount > 0 ? orderCount.toString() : null,
-      path: '/orders',
+      path: "/orders",
     },
     {
-      id: 'menu',
-      label: 'จัดการเมนู',
+      id: "menu",
+      label: "จัดการเมนู",
       icon: Utensils,
       children: [
-        { id: 'menu-list', label: 'รายการเมนู', path: '/menu', },
-        { id: 'menu-category', label: 'หมวดหมู่', path: '/category', },
-      ]
+        { id: "menu-list", label: "รายการเมนู", path: "/menu" },
+        { id: "menu-category", label: "หมวดอาหาร", path: "/category" },
+      ],
     },
     {
-      id: 'customers',
-      label: 'จัดการพนักงาน',
-      icon: Users, 
-      path: '/staff'
+      id: "customers",
+      label: "จัดการพนักงาน",
+      icon: Users,
+      path: "/ManageStaff",
     },
     {
-      id: 'promotions',
-      label: 'จัดการโต๊ะอาหาร',
-      icon: Gift
-      , path: '/table'
-
+      id: "promotions",
+      label: "จัดการโต๊ะอาหาร",
+      icon: Gift,
+      path: "/table",
     },
     // {
     //   id: 'reviews',
@@ -196,43 +189,20 @@ useEffect(() => {
     //   icon: Star,
     //   badge: '2'
     // },
-        {
-      id: 'history',
-      label: 'ประวัติคำสั่งซื้อ',
-      icon: FileText,
-      path: '/order-history'
-
-    },
-    // {
-    //   id: 'billing',
-    //   label: 'บิลและชำระเงิน',
-    //   icon: CreditCard
-    // },
-    // {
-    //   id: 'calendar',
-    //   label: 'จัดการร้าน',
-    //   icon: Store ,
-    //    path: '/'
-    // },
-    
     {
-      id: 'notifications',
-      label: 'การแจ้งเตือน',
-      icon: Bell
-    }
+      id: "history",
+      label: "ประวัติคำสั่งซื้อ",
+      icon: FileText,
+      path: "/order-history",
+    },
   ];
 
   const bottomMenuItems = [
-    // {
-    //   id: 'settings',
-    //   label: 'ตั้งค่า',
-    //   icon: Settings
-    // },
-    // {
-    //   id: 'help',
-    //   label: 'ช่วยเหลือ',
-    //   icon: HelpCircle
-    // }
+    {
+      id: "LogOut",
+      label: "ออกจากระบบ",
+      icon: LogOut,
+    },
   ];
 
   const [expandedItems, setExpandedItems] = useState(new Set());
@@ -257,31 +227,36 @@ useEffect(() => {
         <div
           className={`
             flex items-center px-3 py-2.5 mx-2 rounded-xl cursor-pointer transition-all duration-200 group
-            ${item.active
-              ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-              : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600'
+            ${
+              item.active
+                ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg"
+                : "text-gray-700 hover:bg-orange-50 hover:text-orange-600"
             }
-            ${isChild ? 'ml-4 py-2' : ''}
-            ${collapsed && !isChild ? 'justify-center' : ''}
+            ${isChild ? "ml-4 py-2" : ""}
+            ${collapsed && !isChild ? "justify-center" : ""}
           `}
           onClick={() => {
-            if (hasChildren) {
+            if (item.id === "LogOut") {
+              logout(); // ✅ เรียก logout จาก Zustand
+              navigate("/login"); // ✅ ย้ายไปหน้า login
+            } else if (hasChildren) {
               toggleExpanded(item.id);
             } else if (item.path) {
               navigate(item.path);
             }
           }}
-
         >
           {IconComponent && (
             <IconComponent
               size={20}
-              className={`${collapsed && !isChild ? '' : 'mr-3'} ${item.active ? 'text-white' : ''}`}
+              className={`${collapsed && !isChild ? "" : "mr-3"} ${
+                item.active ? "text-white" : ""
+              }`}
             />
           )}
 
           {(!collapsed || isChild) && (
-            <span className={`flex-1 font-medium ${isChild ? 'text-sm' : ''}`}>
+            <span className={`flex-1 font-medium ${isChild ? "text-sm" : ""}`}>
               {item.label}
             </span>
           )}
@@ -295,14 +270,16 @@ useEffect(() => {
           {hasChildren && (!collapsed || isChild) && (
             <ChevronRight
               size={16}
-              className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+              className={`transition-transform duration-200 ${
+                isExpanded ? "rotate-90" : ""
+              }`}
             />
           )}
         </div>
 
         {hasChildren && isExpanded && (!collapsed || isChild) && (
           <div className="mt-1 mb-2">
-            {item.children.map(child => renderMenuItem(child, true))}
+            {item.children.map((child) => renderMenuItem(child, true))}
           </div>
         )}
       </div>
@@ -312,11 +289,13 @@ useEffect(() => {
   return (
     <div className="flex bg-gradient-to-br from-orange-50 to-orange-100">
       {/* Sidebar */}
-      <div className={`
+      <div
+        className={`
         bg-white shadow-2xl transition-all duration-300 ease-in-out flex flex-col
         sticky top-0 h-screen
-        ${collapsed ? 'w-16' : 'w-64'}
-      `}>
+        ${collapsed ? "w-16" : "w-64"}
+      `}
+      >
         {/* Header */}
         <div className="p-4 border-b border-orange-100">
           <div className="flex items-center justify-between">
@@ -326,8 +305,12 @@ useEffect(() => {
                   <span className="text-white font-bold text-lg">🍽️</span>
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold text-gray-800">ร้านอาหารป้าอ้อ</h1>
-                  <p className="text-xs text-gray-600">ระบบจัดการเมนูร้านอาหารดิจิทัล</p>
+                  <h1 className="text-lg font-bold text-gray-800">
+                    ร้านอาหารป้าอ้อ
+                  </h1>
+                  <p className="text-xs text-gray-600">
+                    ระบบจัดการเมนูร้านอาหารดิจิทัล
+                  </p>
                 </div>
               </div>
             )}
@@ -342,16 +325,16 @@ useEffect(() => {
         {/* Menu Items */}
         <div className="flex-1 py-4 overflow-y-auto">
           <nav className="space-y-1">
-            {menuItems.map(item => renderMenuItem(item))}
+            {menuItems.map((item) => renderMenuItem(item))}
           </nav>
         </div>
 
         {/* Bottom Menu */}
-        {/* <div className="border-t border-orange-100 py-4">
+        <div className="border-t border-orange-100 py-4">
           <nav className="space-y-1">
-            {bottomMenuItems.map(item => renderMenuItem(item))}
+            {bottomMenuItems.map((item) => renderMenuItem(item))}
           </nav>
-        </div> */}
+        </div>
 
         {/* Toggle Button */}
         <div className="p-4 border-t border-orange-100">
@@ -366,9 +349,7 @@ useEffect(() => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        {children}
-      </div>
+      <div className="flex-1 overflow-auto">{children}</div>
     </div>
   );
 };

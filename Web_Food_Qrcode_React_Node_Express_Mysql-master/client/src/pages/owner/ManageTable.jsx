@@ -152,6 +152,7 @@ const ManageTable = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-4">
       <div className="max-w-8xl mx-auto">
+        
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl mb-6 p-6 border-l-4 border-orange-500">
           <div className="flex justify-between items-center">
@@ -348,10 +349,10 @@ const ManageTable = () => {
                     ชื่อโต๊ะ
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                    QR Code
+                    วันที่สร้าง
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                    วันที่สร้าง
+                    QR Code
                   </th>
                   <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
                     จัดการ
@@ -386,15 +387,7 @@ const ManageTable = () => {
                         {table.table_name || "-"}
                       </p>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-green-100 to-green-200 text-green-700 border border-green-200">
-                          <button onClick={() => handleGenerateQR(table)}>
-                            <Eye size={16} />
-                          </button>
-                        </span>
-                      </div>
-                    </td>
+                   
                     <td className="px-6 py-4 text-gray-600">
                       {new Date(table.created_at).toLocaleString("th-TH", {
                         day: "2-digit",
@@ -404,6 +397,16 @@ const ManageTable = () => {
                         minute: "2-digit",
                       })}
                     </td>
+
+                     <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-green-100 to-green-200 text-green-700 border border-green-200">
+                          <button onClick={() => handleGenerateQR(table)}>
+                            <Eye size={16} />
+                          </button>
+                        </span>
+                      </div>
+                    </td> 
 
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">

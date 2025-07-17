@@ -25,7 +25,7 @@ const Login = () => {
       if (user.role === "owner") {
         navigate("/");
       } else if (user.role === "staff") {
-        navigate("/staff/dashboard");
+        navigate("/staff");
       } else {
         navigate("/");
       }
@@ -84,7 +84,9 @@ const Login = () => {
               <div className="text-3xl">🍽️</div>
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">เข้าสู่ระบบ</h1>
-            <p className="text-orange-100">ยินดีต้อนรับเข้าสู่ร้านอาหารป้าอ้อ!!</p>
+            <p className="text-orange-100">
+              ยินดีต้อนรับเข้าสู่ร้านอาหารป้าอ้อ!!
+            </p>
           </div>
 
           <div className="p-6">
@@ -187,12 +189,6 @@ const Login = () => {
                 {error}
               </p>
             )}
-
-            <div className="text-center mt-4">
-              <button className="text-orange-600 hover:text-orange-700 text-sm font-medium transition-colors">
-                ลืมรหัสผ่าน?
-              </button>
-            </div>
           </div>
         </div>
 

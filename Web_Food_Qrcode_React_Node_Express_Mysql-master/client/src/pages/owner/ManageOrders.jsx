@@ -194,28 +194,55 @@ const ManageOrders = () => {
   //     .then((res) => setRevenueData(res.data))
   //     .catch((err) => console.error("โหลดข้อมูลยอดขายล้มเหลว", err));
   // }, []);
-  useEffect(() => {
-    const token = useAuthStore.getState().token;
+  // useEffect(() => {
+  //   const token = useAuthStore.getState().token;
 
-    // ดึงข้อมูลยอดขายตอนหน้าโหลดครั้งแรก
-    axios
-      .get("http://localhost:3000/api/owner/orders/today-revenue", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => setRevenueData(res.data))
-      .catch((err) => console.error("โหลดข้อมูลยอดขายล้มเหลว", err));
+  //   // ดึงข้อมูลยอดขายตอนหน้าโหลดครั้งแรก
+  //   axios
+  //     .get("http://localhost:3000/api/owner/orders/today-revenue", {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     })
+  //     .then((res) => setRevenueData(res.data))
+  //     .catch((err) => console.error("โหลดข้อมูลยอดขายล้มเหลว", err));
 
-    // ฟัง event อัปเดตยอดขาย realtime
-    socket.on("today_revenue_updated", (data) => {
-      console.log("ได้รับข้อมูลยอดขาย realtime:", data);
-      setRevenueData(data);
-    });
+  //   // ฟัง event อัปเดตยอดขาย realtime
+  //   socket.on("today_revenue_updated", (data) => {
+  //     console.log("ได้รับข้อมูลยอดขาย realtime:", data);
+  //     setRevenueData(data);
+  //   });
 
-    // cleanup ถ้า component ถูกถอดออก
-    return () => {
-      socket.off("today_revenue_updated");
-    };
-  }, []);
+  //   // cleanup ถ้า component ถูกถอดออก
+  //   return () => {
+  //     socket.off("today_revenue_updated");
+  //   };
+  // }, []);
+useEffect(() => {
+  const token = useAuthStore.getState().token;
+
+  // ดึงข้อมูลยอดขายตอนหน้าโหลดครั้งแรก
+  axios
+    .get("http://localhost:3000/api/owner/orders/today-revenue", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then((res) => setRevenueData(res.data))
+    .catch((err) => console.error("โหลดข้อมูลยอดขายล้มเหลว", err));
+
+  // ฟัง event อัปเดตยอดขาย realtime
+  const handleRevenueUpdate = (data) => {
+    console.log("ได้รับข้อมูลยอดขาย realtime:", data);
+    setRevenueData(data);
+  };
+
+  socket.on("today_revenue_updated", handleRevenueUpdate);
+
+  // cleanup ถ้า component ถูกถอดออก
+  return () => {
+    socket.off("today_revenue_updated", handleRevenueUpdate);
+  };
+}, []);
+
+
+
 
   const formatPrice = (price) => {
     if (!price) return "฿0.00";
@@ -236,21 +263,53 @@ const ManageOrders = () => {
     });
   };
 
+//  const updateOrderStatus = async (orderId, newStatus) => {
+//     try {
+//       const token = useAuthStore.getState().token;
+//       await axios.put(
+//         `${API_URL_ORDER}/${orderId}/status`,
+//         { status: newStatus },
+//         { headers: { Authorization: `Bearer ${token}` } }
+//       );
+//       setOrders((prevOrders) =>
+//         prevOrders.map((order) =>
+//           order.order_id === orderId ? { ...order, status: newStatus } : order
+//         )
+//       );
+//     } catch (error) {
+//       console.error("❌ Error updating order status:", error);
+//     }
+//   };
+   // ฟัง event realtime จาก socket.io
+   // ✅ ฟังการเปลี่ยนสถานะแบบ realtime
+  useEffect(() => {
+    socket.on("order_status_updated", ({ orderId, status }) => {
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.order_id === orderId ? { ...order, status } : order
+        )
+      );
+    });
+
+    return () => {
+      socket.off("order_status_updated");
+    };
+  }, []);
+
+  // ✅ เปลี่ยนสถานะออเดอร์
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      const token = useAuthStore.getState().token;
       await axios.put(
         `${API_URL_ORDER}/${orderId}/status`,
         { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.order_id === orderId ? { ...order, status: newStatus } : order
-        )
-      );
-    } catch (error) {
-      console.error("❌ Error updating order status:", error);
+      // *ไม่ต้อง setOrders ตรงนี้ เพราะ socket จะทำให้แล้ว*
+    } catch (err) {
+      console.error("❌ เปลี่ยนสถานะไม่สำเร็จ", err);
+      alert("เปลี่ยนสถานะไม่สำเร็จ กรุณาลองใหม่");
     }
   };
 
@@ -294,13 +353,6 @@ const ManageOrders = () => {
                 ติดตามและจัดการคำสั่งซื้อทั้งหมดในร้าน
               </p>
             </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-amber-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
-            >
-              <RefreshCw className="w-5 h-5" />
-              รีเฟรช
-            </button>
           </div>
         </div>
 

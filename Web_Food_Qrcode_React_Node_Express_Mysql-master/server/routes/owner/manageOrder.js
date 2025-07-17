@@ -1,27 +1,16 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../../config/db");
-const { verifyToken, isOwner } = require("../../middleware/auth");
+const { verifyToken } = require("../../middleware/auth");
 
 // Middleware ตรวจสอบ token และสิทธิ์เจ้าของร้าน
-router.use(verifyToken, isOwner);
+router.use(verifyToken);
 const { getTodayRevenue } = require("./getTodayRevenue"); // สร้างไฟล์ช่วยดึงยอดขาย (ดูตัวอย่างด้านล่าง)
 const { getTodayCount } = require("./getTodayCount");
 
 
-
-// อออเดอร์ทั้งหมด
-// router.get("/all", verifyToken, isOwner, async (req, res) => {
-//   try {
-//     const [rows] = await db.promise().query("SELECT * FROM orders"); // หรือคำสั่ง SQL ที่คุณใช้
-//     res.json({ orders: rows });
-//   } catch (error) {
-//     console.error("🔥 เกิดข้อผิดพลาดใน backend:", error);
-//     res.status(500).json({ message: "เกิดข้อผิดพลาดในฝั่งเซิร์ฟเวอร์" });
-//   }
-// });
 // ออเดอร์เฉพาะของ "วันนี้"
-router.get("/all", verifyToken, isOwner, async (req, res) => {
+router.get("/all", verifyToken, async (req, res) => {
   try {
     const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Bangkok" });
 
@@ -38,48 +27,8 @@ router.get("/all", verifyToken, isOwner, async (req, res) => {
   }
 });
 
-// router.get('/count', verifyToken, isOwner, async (req, res) => {
-//   try {
-//     const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
 
-//     const [rows] = await db.promise().query(`
-//       SELECT COUNT(*) AS count
-//       FROM orders
-//       WHERE DATE(CONVERT_TZ(order_time, '+00:00', '+07:00')) = ?
-//         AND status NOT IN ('completed', 'cancelled')
-//     `, [today]);
-
-//     res.json({ count: rows[0].count });
-//   } catch (err) {
-//     console.error('❌ เกิดข้อผิดพลาด:', err);
-//     res.status(500).json({ message: 'ไม่สามารถดึงจำนวนออเดอร์วันนี้ได้' });
-//   }
-// });
-
-// router.get('/count', verifyToken, isOwner, async (req, res) => {
-//   try {
-//     // ใช้ CURDATE() เพื่อเช็ควันปัจจุบันใน MySQL server timezone
-//     const [rows] = await db.promise().query(`
-//       SELECT COUNT(*) AS count
-//       FROM orders
-//       WHERE DATE(order_time) = CURDATE()
-//         AND status IN ('pending', 'preparing', 'ready')
-//     `);
-
-//     const count = rows?.[0]?.count ?? 0;
-
-//     const io = req.app.get("io");
-//     if (io) {
-//       io.emit("orderCountUpdated", { count });
-//     }
-
-//     return res.json({ count });
-//   } catch (error) {
-//     console.error('❌ เกิดข้อผิดพลาด:', error);
-//     return res.status(500).json({ message: 'ไม่สามารถดึงจำนวนออเดอร์วันนี้ได้' });
-//   }
-// });
-router.get('/count', verifyToken, isOwner, async (req, res) => {
+router.get('/count', verifyToken, async (req, res) => {
   try {
     const count = await getTodayCount();
 
@@ -98,36 +47,6 @@ router.get('/count', verifyToken, isOwner, async (req, res) => {
 
 
 
-
-// คำนวนราคาในวันนี้
-// router.get("/today-revenue", verifyToken, isOwner, async (req, res) => {
-//   try {
-//     // เวลาแบบไทย Format YYYY-MM-DD
-//     const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Bangkok" });
-
-//     const [result] = await db.promise().query(
-//       `SELECT 
-//         COALESCE(SUM(total_price), 0) AS totalRevenue,
-//         COUNT(*) AS totalOrders
-//       FROM orders
-//       WHERE DATE(order_time) = ?
-//         AND status = 'completed'`,
-//       [today]
-//     );
-
-//     res.json({
-//       totalRevenue: parseFloat(result[0].totalRevenue) || 0,
-//       totalOrders: result[0].totalOrders,
-//       date: new Date().toLocaleDateString("th-TH"),
-//     });
-//   } catch (err) {
-//     console.error("Database error:", err);
-//     res.status(500).json({
-//       message: "ดึงยอดขายวันนี้ล้มเหลว",
-//       error: err.message,
-//     });
-//   }
-// });
 // คำนวณยอดขายวันนี้
 router.get("/today-revenue", async (req, res) => {
   try {
@@ -158,7 +77,7 @@ router.get("/today-revenue", async (req, res) => {
 });
 
 
-router.get("/:orderId", verifyToken, isOwner, async (req, res) => {
+router.get("/:orderId", verifyToken, async (req, res) => {
   const orderId = req.params.orderId;
   
   // console.log("🔍 กำลังดึงข้อมูลออเดอร์:", orderId);
@@ -218,101 +137,7 @@ router.get("/:orderId", verifyToken, isOwner, async (req, res) => {
 
 
 
-//2. เปลี่ยนสถานะคำสั่งซื้อ
-
-// router.put("/:orderId/status", verifyToken, isOwner, async (req, res) => {
-//   const orderId = req.params.orderId;
-//   const { status } = req.body;
-
-//   try {
-//     const [result] = await db.promise().query(
-//       "UPDATE orders SET status = ? WHERE order_id = ?",
-//       [status, orderId]
-//     );
-
-//     if (result.affectedRows === 0) {
-//       return res.status(404).json({ message: "ไม่พบ order นี้" });
-//     }
-
-//     res.json({ message: "อัปเดตสถานะสำเร็จ" });
-//   } catch (err) {
-//     console.error("❌ อัปเดตสถานะล้มเหลว:", err);
-//     res.status(500).json({ message: "เกิดข้อผิดพลาด" });
-//   }
-// });
-
-// แสดงยอดขายวันเดียว
-// routes/owner/stats.js
-// router.put("/:orderId/status", verifyToken, isOwner, async (req, res) => {
-//   const orderId = req.params.orderId;
-//   const { status } = req.body;
-
-//   try {
-//     const [result] = await db.promise().query(
-//       "UPDATE orders SET status = ? WHERE order_id = ?",
-//       [status, orderId]
-//     );
-
-//     if (result.affectedRows === 0) {
-//       return res.status(404).json({ message: "ไม่พบ order นี้" });
-//     }
-
-//     // ถ้าสถานะเปลี่ยนเป็น completed ให้ส่ง event realtime ผ่าน socket.io
-//     if (status === "completed") {
-//       const io = req.app.get("io");
-//       if (io) {
-//         // ดึงยอดขายวันนี้ล่าสุด
-//         const revenueData = await getTodayRevenue();
-//         // ส่ง event ไปยัง client ทุกคน
-//         io.emit("today_revenue_updated", revenueData);
-//       }
-//     }
-
-//     res.json({ message: "อัปเดตสถานะสำเร็จ" });
-//   } catch (err) {
-//     console.error("❌ อัปเดตสถานะล้มเหลว:", err);
-//     res.status(500).json({ message: "เกิดข้อผิดพลาด" });
-//   }
-// });
-// router.put("/:orderId/status", verifyToken, isOwner, async (req, res) => {
-//   const orderId = req.params.orderId;
-//   const { status } = req.body;
-
-//   try {
-//     const [result] = await db.promise().query(
-//       "UPDATE orders SET status = ? WHERE order_id = ?",
-//       [status, orderId]
-//     );
-
-//     if (result.affectedRows === 0) {
-//       return res.status(404).json({ message: "ไม่พบ order นี้" });
-//     }
-
-//     const io = req.app.get("io");
-//     if (io) {
-//       // ดึงยอดขายวันนี้ล่าสุด (ถ้าต้องการอัปเดตยอดขาย realtime)
-//       const revenueData = await getTodayRevenue();
-//       io.emit("today_revenue_updated", revenueData);
-
-//       // ดึงจำนวนออเดอร์วันนี้ที่ยังไม่เสร็จ (pending, preparing, ready)
-//       const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Bangkok" });
-//       const [rows] = await db.promise().query(`
-//         SELECT COUNT(*) AS count
-//         FROM orders
-//         WHERE DATE(CONVERT_TZ(order_time, '+00:00', '+07:00')) = ?
-//           AND status NOT IN ('completed', 'cancelled')
-//       `, [today]);
-
-//       io.emit("orderCountUpdated", { count: rows[0].count });
-//     }
-
-//     res.json({ message: "อัปเดตสถานะสำเร็จ" });
-//   } catch (err) {
-//     console.error("❌ อัปเดตสถานะล้มเหลว:", err);
-//     res.status(500).json({ message: "เกิดข้อผิดพลาด" });
-//   }
-// });
-// router.put("/:orderId/status", verifyToken, isOwner, async (req, res) => {
+// router.put("/:orderId/status", verifyToken,  async (req, res) => {
 //   const orderId = req.params.orderId;
 //   const { status } = req.body;
 
@@ -329,32 +154,12 @@ router.get("/:orderId", verifyToken, isOwner, async (req, res) => {
 //     const io = req.app.get("io");
 //     if (io) {
 //       // ดึงยอดขายวันนี้ล่าสุด
-//       const revenueQuery = await db.promise().query(`
-//         SELECT 
-//           COALESCE(SUM(total_price), 0) AS totalRevenue,
-//           COUNT(*) AS totalOrders
-//         FROM orders
-//         WHERE DATE(order_time) = CURDATE()
-//           AND status = 'completed'
-//       `);
-//       const revenueData = {
-//         totalRevenue: parseFloat(revenueQuery[0][0].totalRevenue) || 0,
-//         totalOrders: revenueQuery[0][0].totalOrders,
-//         date: new Date().toLocaleDateString("th-TH"),
-//       };
-
-//       // ส่งยอดขายอัปเดต realtime
+//       const revenueData = await getTodayRevenue();
 //       io.emit("today_revenue_updated", revenueData);
 
-//       // ดึงจำนวนออร์เดอร์วันนี้ที่ยังไม่เสร็จ
-//       const countQuery = await db.promise().query(`
-//         SELECT COUNT(*) AS count
-//         FROM orders
-//         WHERE DATE(order_time) = CURDATE()
-//           AND status IN ('pending', 'preparing', 'ready')
-//       `);
-
-//       io.emit("orderCountUpdated", { count: countQuery[0][0].count });
+//       // ดึงจำนวนออเดอร์ที่ยังไม่เสร็จ
+//       const count = await getTodayCount();
+//       io.emit("orderCountUpdated", { count });
 //     }
 
 //     res.json({ message: "อัปเดตสถานะสำเร็จ" });
@@ -363,9 +168,13 @@ router.get("/:orderId", verifyToken, isOwner, async (req, res) => {
 //     res.status(500).json({ message: "เกิดข้อผิดพลาด" });
 //   }
 // });
-router.put("/:orderId/status", verifyToken, isOwner, async (req, res) => {
-  const orderId = req.params.orderId;
+router.put("/:orderId/status", verifyToken, async (req, res) => {
+  const orderId = Number(req.params.orderId);
   const { status } = req.body;
+
+  if (!status) {
+    return res.status(400).json({ message: "กรุณาระบุสถานะ" });
+  }
 
   try {
     const [result] = await db.promise().query(
@@ -378,20 +187,40 @@ router.put("/:orderId/status", verifyToken, isOwner, async (req, res) => {
     }
 
     const io = req.app.get("io");
-    if (io) {
-      // ดึงยอดขายวันนี้ล่าสุด
-      const revenueData = await getTodayRevenue();
-      io.emit("today_revenue_updated", revenueData);
 
-      // ดึงจำนวนออเดอร์ที่ยังไม่เสร็จ
-      const count = await getTodayCount();
-      io.emit("orderCountUpdated", { count });
+    if (io) {
+      try {
+        // ✅ ส่ง event แบบ global (ทุก client ได้)
+        io.emit("order_status_updated", { orderId, status });
+
+        // ✅ ถ้าคุณใช้ room แยก staff / owner — ใช้แบบนี้แทน
+        // io.to("staff-room").emit("order_status_updated", { orderId, status });
+        // io.to("owner-room").emit("order_status_updated", { orderId, status });
+
+        // 🔄 ยอดขายวันนี้ (optional)
+        const revenueData = await getTodayRevenue();
+        io.emit("today_revenue_updated", revenueData);
+
+        // 🔢 จำนวน order ที่ยังไม่เสร็จ
+        const count = await getTodayCount();
+        io.emit("orderCountUpdated", { count });
+
+      } catch (ioErr) {
+        console.error("❌ ส่งข้อมูล realtime ล้มเหลว:", ioErr);
+      }
     }
 
-    res.json({ message: "อัปเดตสถานะสำเร็จ" });
+    // ✅ ส่งข้อมูลกลับ client
+    res.json({
+      message: "อัปเดตสถานะสำเร็จ",
+      orderId,
+      status,
+      success: true
+    });
+
   } catch (err) {
     console.error("❌ อัปเดตสถานะล้มเหลว:", err);
-    res.status(500).json({ message: "เกิดข้อผิดพลาด" });
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในฝั่งเซิร์ฟเวอร์", success: false });
   }
 });
 

@@ -60,23 +60,23 @@ const UserMenu = () => {
     {
       id: 1,
       image:
-        "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=1470",
-      title: "พิซซ่าสุดพิเศษ",
-      subtitle: "อร่อยถึงใจ ราคาเพียง 299 บาท",
+        "https://recipe.sgethai.com/wp-content/uploads/2025/06/240625-kaomankai-cover03.webp",
+      title: "ข้าวมันไก่",
+      subtitle: "อร่อยถึงใจ",
     },
     {
       id: 2,
       image:
-        "https://images.unsplash.com/photo-1646850149335-f15d028036b3?q=80&w=1470",
-      title: "อาหารไทยต้นตำรับ",
+        "https://www.thipkitchen.com/images/course/khamu/img1.jpg",
+      title: "ข้าวขาหมู",
       subtitle: "รสชาติแท้ สูตรดั้งเดิม",
     },
     {
       id: 3,
       image:
-        "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?q=80&w=1415",
-      title: "เบอร์เกอร์สุดอร่อย",
-      subtitle: "เนื้อชั้นดี ราคาเริ่มต้น 159 บาท",
+        "https://img.wongnai.com/p/1968x0/2018/05/12/a6f94b454e5a410686d92dbffb17e71c.jpg",
+      title: "ผัดคะน้าหมูกรอบ",
+      subtitle: "เนื้อชั้นดี",
     },
   ];
 

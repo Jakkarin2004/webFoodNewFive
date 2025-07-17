@@ -201,9 +201,7 @@ const ManageCategory = () => {
                   <th className="px-6 py-4 text-white font-semibold text-center">
                     สร้างเมื่อ
                   </th>
-                  <th className="px-6 py-4 text-white font-semibold text-center">
-                    อัปเดตล่าสุด
-                  </th>
+                  
                   <th className="px-6 py-4 text-white font-semibold text-center">
                     จัดการ
                   </th>
@@ -228,11 +226,7 @@ const ManageCategory = () => {
                         {formatDate(cat.created_at)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center text-gray-600">
-                      <div className="bg-blue-100 text-blue-700 rounded-lg px-3 py-1 text-sm inline-block">
-                        {formatDate(cat.updated_at)}
-                      </div>
-                    </td>
+                   
                     <td className="px-6 py-4 text-center">
                       <div className="flex justify-center gap-2">
                         <button

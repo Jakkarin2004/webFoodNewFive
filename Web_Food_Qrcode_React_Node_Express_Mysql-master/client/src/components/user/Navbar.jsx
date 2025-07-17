@@ -121,12 +121,6 @@ const Navbar = ({ tableNumber: propTableNumber, order_code }) => {
         {isMenuOpen && (
           <div className="md:hidden bg-orange-600">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              {/* <Link
-                to={`/user-home/table/${tableNumber}`}
-                className="text-white block px-3 py-2 hover:bg-orange-700 rounded"
-              >
-                หน้าแรก
-              </Link> */}
               <Link
                 to={`/user-menu/table/${tableNumber}`}
                 className="text-white block px-3 py-2 hover:bg-orange-700 rounded"
@@ -139,12 +133,6 @@ const Navbar = ({ tableNumber: propTableNumber, order_code }) => {
               >
                 เกี่ยวกับเรา
               </Link>
-              {/* <Link
-                to="/contact"
-                className="text-white block px-3 py-2 hover:bg-orange-700 rounded"
-              >
-                ติดต่อ
-              </Link> */}
             </div>
           </div>
         )}

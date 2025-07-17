@@ -4,9 +4,9 @@ import { Save, Edit2, User, Phone, Shield, Eye, EyeOff, Camera, Check, Clock, Us
 const UserProfileManagement = () => {
     const [userData, setUserData] = useState({
         id: 1,
-        first_name: "สมชาย",
-        last_name: "ใจดี",
-        username: "somchai_jaidee",
+        first_name: "สมหมาย",
+        last_name: "ชายโฉด",
+        username: "sommaii",
         password: "password123",
         phone_number: "0812345678",
         role: "admin",
@@ -386,17 +386,7 @@ const UserProfileManagement = () => {
                                         )}
                                     </div>
 
-                                    {/* User ID */}
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                            ID ผู้ใช้
-                                        </label>
-                                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                            <p className="text-gray-700 font-semibold">
-                                                #{userData.id}
-                                            </p>
-                                        </div>
-                                    </div>
+                                    
                                 </div>
                             </div>
 
@@ -418,67 +408,7 @@ const UserProfileManagement = () => {
                             </div>
                         </div>
                     </div>
-                </div>
-
-                {/* Statistics Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
-                    <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-orange-500">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-semibold text-gray-600">อายุบัญชี</p>
-                                <p className="text-lg font-bold text-orange-600">
-                                    {getAccountAge()} วัน
-                                </p>
-                            </div>
-                            <div className="bg-orange-100 p-3 rounded-xl">
-                                <Clock size={24} className="text-orange-600" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-semibold text-gray-600">ข้อมูลครบถ้วน</p>
-                                <p className="text-lg font-bold text-green-600">
-                                    {[userData.first_name, userData.last_name, userData.username, userData.phone_number, userData.email, userData.profile_image]
-                                        .filter(Boolean).length}/6
-                                </p>
-                            </div>
-                            <div className="bg-green-100 p-3 rounded-xl">
-                                <Check size={24} className="text-green-600" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-purple-500">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-semibold text-gray-600">สถานะบัญชี</p>
-                                <p className="text-lg font-bold text-purple-600">
-                                    ใช้งานได้
-                                </p>
-                            </div>
-                            <div className="bg-purple-100 p-3 rounded-xl">
-                                <UserCheck size={24} className="text-purple-600" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-orange-500">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-semibold text-gray-600">มีรูปโปรไฟล</p>
-                                <p className="text-lg font-bold text-orange-600">
-                                    {userData.profile_image ? 'มี' : 'ไม่มี'}
-                                </p>
-                            </div>
-                            <div className="bg-orange-100 p-3 rounded-xl">
-                                <User size={24} className="text-orange-600" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                </div>         
             </div>
         </div>
     );
