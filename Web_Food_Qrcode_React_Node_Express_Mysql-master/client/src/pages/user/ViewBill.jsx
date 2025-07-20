@@ -3,18 +3,33 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../../components/user/Navbar";
 import io from "socket.io-client";
+import { Link } from "react-router-dom";
 //เอาไว้ทำ modal
 import toast from "react-hot-toast";
 const socket = io("http://localhost:3000"); // เปลี่ยนตาม URL backend จริง
 
-const ViewBill = () => {
+const ViewBill = ({ tableNumber: propTableNumber}) => {
   const { order_code } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
-   // ดึงข้อมูล order ตอนแรก
+  // เอาไว้ดึงโต๊ะเวลาจะกดกลับหน้าหลัก
+  const [tableNumber, setTableNumber] = useState(null);
+
+  // เอาไว้ดึงเลขโต๊ะ
+  useEffect(() => {
+    // ใช้ prop ก่อน ถ้าไม่มี ค่อยดึงจาก localStorage
+    if (propTableNumber) {
+      setTableNumber(propTableNumber);
+    } else {
+      const storedTable = sessionStorage.getItem("table_number");
+      setTableNumber(storedTable);
+    }
+  }, [propTableNumber]);
+
+  // ดึงข้อมูล order ตอนแรก
   useEffect(() => {
     axios
       .get(`http://localhost:3000/api/user/viewOrder-list/${order_code}`)
@@ -71,7 +86,6 @@ const ViewBill = () => {
       setLoading(false);
     }
   };
-
 
   const handleConfirmOrder = async () => {
     if (!window.confirm("คุณแน่ใจหรือไม่ว่าได้รับอาหารครบถ้วนแล้ว?")) return;
@@ -251,6 +265,7 @@ const ViewBill = () => {
                 >
                   ❌ ยกเลิกคำสั่งซื้อ
                 </button>
+
                 <p className="text-sm text-red-600 mt-2 text-center">
                   ไม่สามารถยกเลิกคำสั่งซื้อได้ในสถานะนี้
                 </p>
@@ -268,6 +283,14 @@ const ViewBill = () => {
             )}
           </div>
         )}
+        <div className="flex justify-center mt-4">
+          <Link
+            to={`/user-menu/table/${tableNumber}`}
+            className="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            หน้าหลัก
+          </Link>
+        </div>
 
         {showCancelModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

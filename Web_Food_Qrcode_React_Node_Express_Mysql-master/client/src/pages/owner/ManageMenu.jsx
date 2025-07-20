@@ -22,15 +22,6 @@ const ManageMenu = () => {
     fetchMenuType();
   }, []);
 
-  // const fetchMenu = async () => {
-  //   try {
-  //     const response = await axios.get(API_URL);
-  //     // console.log(response.data); // เช็คข้อมูลที่ได้
-  //     setMenus(response.data.menus || response.data || []); // ปรับตามโครงสร้าง API จริง
-  //   } catch (error) {
-  //     console.error("เกิดข้อผิดพลาดในการโหลดหมวดหมู่:", error);
-  //   }
-  // };
   const fetchMenu = async () => {
     try {
       const response = await axios.get(API_URL);
@@ -103,7 +94,7 @@ const ManageMenu = () => {
     form.append("menu_name", formData.menu_name.trim());
     form.append("price", parseFloat(formData.price).toString());
     form.append("special", formData.special ? "1" : "0");
-    form.append("detail_menu", formData.detail_menu?.trim() || "");
+    form.append("detail_menu", formData.detail_menu?.trim() || "ไม่มีรายละเอียด");
     form.append("menu_type_id", menuTypeId.toString());
 
     // ถ้ามีไฟล์ใหม่
@@ -325,12 +316,6 @@ const ManageMenu = () => {
                       />
                     </label>
 
-                    {/* {formData.menu_image_file && (
-        <div className="text-sm text-gray-700">
-          ชื่อไฟล์: {formData.menu_image_file.name} (
-          {(formData.menu_image_file.size / 1024).toFixed(2)} KB)
-        </div>
-      )} */}
                     {formData.menu_image_file && (
                       <div className="text-sm text-gray-700">
                         {typeof formData.menu_image_file === "string" ? (
@@ -369,7 +354,7 @@ const ManageMenu = () => {
                     </label>
                     <select
                       name="special"
-                      value={formData.special ? "1" : "0"} // ตรวจสอบตรงนี้ดี ๆ
+                      value={formData.special ? "1" : "0"}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
@@ -472,9 +457,6 @@ const ManageMenu = () => {
                         <div>
                           <p className="font-semibold text-gray-800">
                             {menu.menu_name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            ID: {menu.menu_id}
                           </p>
                         </div>
                       </div>

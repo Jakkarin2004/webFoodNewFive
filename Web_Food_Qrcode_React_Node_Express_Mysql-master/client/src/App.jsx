@@ -86,7 +86,7 @@ function App() {
           {/* <Route path="order-history" element={<StaffOrderHistory />} /> */}
         </Route>
 
-        {/* 🧾 User Routes (ไม่ต้อง login) */}
+        {/*User Routes (ไม่ต้อง login) */}
         <Route path="/user-menu/table/:table_number" element={<UserMenu />} />
         <Route path="/user-product/table/:table_number" element={<UserProduct />} />
         <Route path="/user-home/table/:table_number" element={<UserHome />} />
